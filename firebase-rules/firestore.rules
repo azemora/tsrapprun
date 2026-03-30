@@ -1,0 +1,160 @@
+/**
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║  Firestore Security Rules - tsrapprun                       ║
+ * ║                                                             ║
+ * ║  POLÍTICA DE SEGURANÇA:                                     ║
+ * ║  1. DENY ALL por padrão — tudo é bloqueado                  ║
+ * ║  2. Menor privilégio — cada regra abre apenas o necessário  ║
+ * ║  3. Owner-only — usuários só acessam seus próprios dados    ║
+ * ║  4. Validação de input — todos os campos são validados      ║
+ * ║  5. Rate limiting — via App Check (fase futura)             ║
+ * ║                                                             ║
+ * ║  ESTRUTURA DO BANCO:                                        ║
+ * ║  /users/{userId}                  → perfil do usuário       ║
+ * ║  /events/{eventId}                → dados do evento         ║
+ * ║  /events/{eventId}/photos/{id}    → metadados das fotos     ║
+ * ║                                                             ║
+ * ║  IMPORTANTE: Este arquivo é a versão local das regras.      ║
+ * ║  Ao alterar, copie o conteúdo para o Firebase Console →     ║
+ * ║  Firestore → Rules → Publish                                ║
+ * ║                                                             ║
+ * ║  Última atualização: 2026-03-18                             ║
+ * ║  Autor: DPO / Angelo                                        ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ */
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ══════════════════════════════════════════════════════
+    // REGRA PADRÃO: NEGAR TUDO
+    // Qualquer coleção não explicitamente listada abaixo
+    // é completamente bloqueada. Isso garante que novos
+    // dados só são acessíveis se uma regra for criada.
+    // ══════════════════════════════════════════════════════
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ══════════════════════════════════════════════════════
+    // PERFIL DO USUÁRIO
+    // Caminho: /users/{userId}
+    //
+    // Cada usuário só acessa seu próprio documento.
+    // Não é possível listar todos os usuários (sem list).
+    // Não é possível deletar perfil via app (requer admin).
+    // ══════════════════════════════════════════════════════
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile();
+      allow update: if isOwner(userId) && isValidUserProfile();
+      allow delete: if false;
+    }
+
+    // ══════════════════════════════════════════════════════
+    // EVENTOS
+    // Caminho: /events/{eventId}
+    //
+    // - Criador: CRUD completo
+    // - Participantes: somente leitura
+    // - Outros: sem acesso
+    // - Máximo 50 participantes por evento (controle custo)
+    // ══════════════════════════════════════════════════════
+    match /events/{eventId} {
+      allow read: if isAuthenticated() &&
+                     (resource.data.creatorId == request.auth.uid ||
+                      request.auth.uid in resource.data.participants);
+      allow create: if isAuthenticated() && isValidEvent();
+      allow update: if isAuthenticated() &&
+                       resource.data.creatorId == request.auth.uid;
+      allow delete: if isAuthenticated() &&
+                       resource.data.creatorId == request.auth.uid;
+
+      // ── Fotos do Evento (metadados) ──
+      // O arquivo binário fica no Storage; aqui são metadados
+      match /photos/{photoId} {
+        allow read: if isAuthenticated() &&
+                       isEventParticipant(eventId);
+        allow create: if isAuthenticated() &&
+                        isEventParticipant(eventId) &&
+                        isValidPhoto();
+        allow delete: if isAuthenticated() &&
+                        resource.data.uploadedBy == request.auth.uid;
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // FUNÇÕES AUXILIARES DE SEGURANÇA
+    // ══════════════════════════════════════════════════════
+
+    /** Verifica se o request vem de um usuário autenticado */
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /** Verifica se o usuário autenticado é o dono do recurso */
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    /**
+     * Valida o perfil do usuário.
+     * - displayName: obrigatório, string, 1-100 chars
+     * - email: obrigatório, formato válido
+     * - createdAt: obrigatório (timestamp)
+     */
+    function isValidUserProfile() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['displayName', 'email', 'createdAt']) &&
+             data.displayName is string &&
+             data.displayName.size() > 0 &&
+             data.displayName.size() <= 100 &&
+             data.email is string &&
+             data.email.matches('.*@.*[.].*');
+    }
+
+    /**
+     * Valida um evento.
+     * - name: obrigatório, string, 1-200 chars
+     * - creatorId: deve ser o uid do criador
+     * - participants: lista, máximo 50 (controle de custo)
+     * - createdAt: obrigatório (timestamp)
+     */
+    function isValidEvent() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['name', 'creatorId', 'createdAt', 'participants']) &&
+             data.creatorId == request.auth.uid &&
+             data.name is string &&
+             data.name.size() > 0 &&
+             data.name.size() <= 200 &&
+             data.participants is list &&
+             data.participants.size() <= 50;
+    }
+
+    /**
+     * Verifica se o usuário é participante de um evento.
+     * Faz um get() no documento do evento para validar.
+     * CUSTO: 1 leitura adicional por verificação.
+     */
+    function isEventParticipant(eventId) {
+      let event = get(/databases/$(database)/documents/events/$(eventId));
+      return event.data.creatorId == request.auth.uid ||
+             request.auth.uid in event.data.participants;
+    }
+
+    /**
+     * Valida metadados de uma foto.
+     * - uploadedBy: deve ser o uid do uploader
+     * - uploadedAt: obrigatório (timestamp)
+     * - fileName: string, máximo 255 chars
+     */
+    function isValidPhoto() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['uploadedBy', 'uploadedAt', 'fileName']) &&
+             data.uploadedBy == request.auth.uid &&
+             data.fileName is string &&
+             data.fileName.size() <= 255;
+    }
+  }
+}

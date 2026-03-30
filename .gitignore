@@ -1,0 +1,33 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kotlin
+*.class
+
+# Android
+local.properties
+# SEGURANÇA: google-services.json contém API keys e project IDs
+# NUNCA commitar no repositório — cada dev baixa do Firebase Console
+google-services.json
+androidApp/build/
+shared/build/
+
+# iOS
+iosApp/Pods/
+iosApp/*.xcworkspace
+iosApp/iosApp.xcodeproj/project.xcworkspace/xcuserdata/
+iosApp/iosApp.xcodeproj/xcuserdata/
