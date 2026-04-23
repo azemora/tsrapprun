@@ -46,6 +46,12 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
 
+    <!--
+        POST_NOTIFICATIONS: Necessária em API 33+ para exibir notificações.
+        Solicitada em runtime. Usada para lembretes de registro de momentos.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:allowBackup="false"
         android:label="TSR App Run"

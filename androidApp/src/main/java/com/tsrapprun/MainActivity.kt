@@ -8,7 +8,9 @@
  */
 package com.tsrapprun.android
 
+import android.Manifest
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -27,6 +29,8 @@ import com.tsrapprun.AppUiState
 import com.tsrapprun.auth.AuthRepository
 import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.PhotoData
+import com.tsrapprun.moments.MomentEntry
+import com.tsrapprun.android.notifications.MomentNotificationWorker
 import com.tsrapprun.storage.LocalPhotoStorage
 import kotlinx.coroutines.launch
 import java.io.InputStream
@@ -43,6 +47,7 @@ class MainActivity : ComponentActivity() {
     private var storageUsedMB by mutableStateOf("0.0")
     private var events by mutableStateOf<List<EventData>>(emptyList())
     private var allPhotos by mutableStateOf<List<PhotoData>>(emptyList())
+    private var moments by mutableStateOf<List<MomentEntry>>(emptyList())
 
     // Photo picker launcher (registrado antes de onCreate)
     private lateinit var photoPickerLauncher: ActivityResultLauncher<PickVisualMediaRequest>
@@ -74,6 +79,11 @@ class MainActivity : ComponentActivity() {
             webClientId = BuildConfig.WEB_CLIENT_ID
         )
         photoStorage = LocalPhotoStorage(context = this)
+
+        // ── Notificações de momentos ──
+        MomentNotificationWorker.createNotificationChannel(this)
+        MomentNotificationWorker.scheduleNotifications(this)
+        requestNotificationPermission()
 
         // ── Verifica sessão + carrega dados ──
         lifecycleScope.launch {
@@ -127,13 +137,20 @@ class MainActivity : ComponentActivity() {
                     onUpdatePhotosEventId = { photoIds, eventId ->
                         photoStorage.updatePhotosEventId(photoIds, eventId)
                     },
+                    onSaveMoment = { moment ->
+                        photoStorage.saveMoment(moment)
+                    },
+                    onDeleteMoment = { momentId ->
+                        photoStorage.deleteMoment(momentId)
+                    },
                     onRefreshData = { refreshData() }
                 ),
                 uiState = AppUiState(
                     photoCount = photoCount,
                     storageUsedMB = storageUsedMB,
                     events = events,
-                    allPhotos = allPhotos
+                    allPhotos = allPhotos,
+                    moments = moments
                 )
             )
         }
@@ -206,10 +223,20 @@ class MainActivity : ComponentActivity() {
     /**
      * Atualiza todos os contadores e listas da UI.
      */
+    /**
+     * Solicita permissão de notificações em API 33+.
+     */
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 100)
+        }
+    }
+
     private suspend fun refreshData() {
         allPhotos = photoStorage.listPhotos()
         photoCount = allPhotos.size
         events = photoStorage.listEvents()
+        moments = photoStorage.listMoments()
         val totalBytes = photoStorage.getTotalStorageUsed()
         storageUsedMB = String.format("%.1f", totalBytes / (1024.0 * 1024.0))
     }

@@ -46,6 +46,12 @@ sealed class NavigationScreen {
     /** Livro de Memórias — scrapbook com todos os eventos. */
     data object MemoryBook : NavigationScreen()
 
+    /** Lista de registros de momentos (aba "Registros"). */
+    data object MomentsList : NavigationScreen()
+
+    /** Tela de registro de momento (diário ou semanal). */
+    data class MomentRegistration(val type: String) : NavigationScreen()
+
     /** Visualizador fullscreen com swipe entre fotos. */
     data class PhotoViewer(
         val initialIndex: Int,

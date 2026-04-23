@@ -16,6 +16,7 @@ package com.tsrapprun.storage
 
 import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.PhotoData
+import com.tsrapprun.moments.MomentEntry
 
 /**
  * Interface multiplataforma para armazenamento local criptografado.
@@ -73,4 +74,18 @@ expect class LocalPhotoStorage {
      * Usado após o usuário nomear o evento (fotos já salvas com eventId=null).
      */
     suspend fun updatePhotosEventId(photoIds: List<String>, eventId: String)
+
+    // ── Operações de Momentos (Registros) ──
+
+    /** Salva um registro de momento. */
+    suspend fun saveMoment(moment: MomentEntry)
+
+    /** Lista todos os momentos registrados. */
+    suspend fun listMoments(): List<MomentEntry>
+
+    /** Atualiza um momento existente. */
+    suspend fun updateMoment(moment: MomentEntry)
+
+    /** Deleta um momento pelo ID. */
+    suspend fun deleteMoment(momentId: String): Boolean
 }

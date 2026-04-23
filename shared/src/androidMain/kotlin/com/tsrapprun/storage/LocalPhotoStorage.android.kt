@@ -21,6 +21,7 @@ import androidx.security.crypto.MasterKey
 import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.PhotoData
 import com.tsrapprun.gallery.GalleryMediaSaver
+import com.tsrapprun.moments.MomentEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -37,6 +38,7 @@ actual class LocalPhotoStorage(private val context: Context) {
         private const val PHOTOS_DIR = "photos"
         private const val PHOTO_INDEX_FILE = "photo_index.json.enc"
         private const val EVENT_INDEX_FILE = "event_index.json.enc"
+        private const val MOMENT_INDEX_FILE = "moment_index.json.enc"
     }
 
     private val masterKey: MasterKey = MasterKey.Builder(context)
@@ -49,6 +51,7 @@ actual class LocalPhotoStorage(private val context: Context) {
 
     private val photoIndexMutex = Mutex()
     private val eventIndexMutex = Mutex()
+    private val momentIndexMutex = Mutex()
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -297,6 +300,83 @@ actual class LocalPhotoStorage(private val context: Context) {
             val jsonString = json.encodeToString(updated)
 
             val indexFile = File(context.filesDir, EVENT_INDEX_FILE)
+            indexFile.delete()
+
+            val encryptedFile = EncryptedFile.Builder(
+                context, indexFile, masterKey,
+                EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
+            ).build()
+            encryptedFile.openFileOutput().use { out ->
+                out.write(jsonString.toByteArray())
+                out.flush()
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════
+    // OPERAÇÕES DE MOMENTOS (Registros)
+    // ══════════════════════════════════════════════
+
+    actual suspend fun saveMoment(moment: MomentEntry) {
+        withContext(Dispatchers.IO) {
+            updateMomentIndex { it + moment }
+            Log.d(TAG, "Momento salvo: ${moment.type} - ${moment.id}")
+        }
+    }
+
+    actual suspend fun listMoments(): List<MomentEntry> {
+        return withContext(Dispatchers.IO) { readMomentIndex() }
+    }
+
+    actual suspend fun updateMoment(moment: MomentEntry) {
+        withContext(Dispatchers.IO) {
+            updateMomentIndex { moments ->
+                moments.map { if (it.id == moment.id) moment else it }
+            }
+        }
+    }
+
+    actual suspend fun deleteMoment(momentId: String): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                updateMomentIndex { moments ->
+                    moments.filter { it.id != momentId }
+                }
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro ao deletar momento", e)
+                false
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════
+    // ÍNDICE DE MOMENTOS (criptografado)
+    // ══════════════════════════════════════════════
+
+    private fun readMomentIndex(): List<MomentEntry> {
+        val indexFile = File(context.filesDir, MOMENT_INDEX_FILE)
+        if (!indexFile.exists()) return emptyList()
+        return try {
+            val encryptedFile = EncryptedFile.Builder(
+                context, indexFile, masterKey,
+                EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
+            ).build()
+            val jsonString = encryptedFile.openFileInput().use { it.readBytes().decodeToString() }
+            json.decodeFromString<List<MomentEntry>>(jsonString)
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao ler índice de momentos", e)
+            emptyList()
+        }
+    }
+
+    private suspend fun updateMomentIndex(transform: (List<MomentEntry>) -> List<MomentEntry>) {
+        momentIndexMutex.withLock {
+            val current = readMomentIndex()
+            val updated = transform(current)
+            val jsonString = json.encodeToString(updated)
+
+            val indexFile = File(context.filesDir, MOMENT_INDEX_FILE)
             indexFile.delete()
 
             val encryptedFile = EncryptedFile.Builder(

@@ -89,4 +89,7 @@ dependencies {
 
     // ExifInterface — leitura de data EXIF ao importar fotos
     implementation(libs.androidx.exifinterface)
+
+    // WorkManager — agendamento de notificações diárias/semanais
+    implementation(libs.androidx.work.runtime)
 }

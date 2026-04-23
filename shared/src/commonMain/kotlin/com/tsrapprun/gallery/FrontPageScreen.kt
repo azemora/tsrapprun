@@ -91,7 +91,8 @@ fun FrontPageScreen(
     onOpenEventList: () -> Unit,
     onCreate: () -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenMemoryBook: () -> Unit = {}
+    onOpenMemoryBook: () -> Unit = {},
+    onOpenMoments: () -> Unit = {}
 ) {
     val sortedEvents = remember(events) {
         events.sortedByDescending { it.createdAt }
@@ -111,7 +112,7 @@ fun FrontPageScreen(
                     .padding(bottom = 100.dp) // espaço para o botão Criar
             ) {
                 // ── Top Bar ──
-                TopBar(onOpenSettings = onOpenSettings)
+                TopBar(onOpenSettings = onOpenSettings, onOpenMoments = onOpenMoments)
 
                 // ── Reels de Eventos ──
                 if (sortedEvents.isNotEmpty()) {
@@ -180,7 +181,7 @@ fun FrontPageScreen(
 // ═══════════════════════════════════════════════════
 
 @Composable
-private fun TopBar(onOpenSettings: () -> Unit) {
+private fun TopBar(onOpenSettings: () -> Unit, onOpenMoments: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -193,9 +194,15 @@ private fun TopBar(onOpenSettings: () -> Unit) {
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.weight(1f))
+        // Ícone registros → Aba Registros
+        IconButton(onClick = onOpenMoments) {
+            Text(
+                text = "\uD83D\uDCDD",  // 📝
+                fontSize = 22.sp
+            )
+        }
         // Ícone engrenagem → Gerenciamento
         IconButton(onClick = onOpenSettings) {
-            // Engrenagem usando texto (sem dependência de ícone externo)
             Text(
                 text = "\u2699",  // ⚙
                 fontSize = 24.sp,

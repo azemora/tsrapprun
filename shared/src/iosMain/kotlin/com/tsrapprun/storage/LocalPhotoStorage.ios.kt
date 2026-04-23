@@ -2,6 +2,7 @@ package com.tsrapprun.storage
 
 import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.PhotoData
+import com.tsrapprun.moments.MomentEntry
 
 actual class LocalPhotoStorage {
     actual suspend fun savePhoto(imageBytes: ByteArray, eventId: String?, capturedAt: Long?): PhotoData {
@@ -17,4 +18,8 @@ actual class LocalPhotoStorage {
     actual suspend fun updateEvent(event: EventData) {}
     actual suspend fun deleteEvent(eventId: String): Boolean = false
     actual suspend fun updatePhotosEventId(photoIds: List<String>, eventId: String) {}
+    actual suspend fun saveMoment(moment: MomentEntry) {}
+    actual suspend fun listMoments(): List<MomentEntry> = emptyList()
+    actual suspend fun updateMoment(moment: MomentEntry) {}
+    actual suspend fun deleteMoment(momentId: String): Boolean = false
 }
