@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ╔══════════════════════════════════════════════════════════════╗
+    ║  AndroidManifest.xml - Configuração do App Android          ║
+    ║                                                             ║
+    ║  SEGURANÇA:                                                 ║
+    ║  - android:allowBackup="false" → impede backup de dados     ║
+    ║    sensíveis via ADB (tokens, prefs criptografadas)         ║
+    ║  - INTERNET: única permissão necessária para autenticação   ║
+    ║  - Nenhuma permissão perigosa declarada nesta fase          ║
+    ║  - usesCleartextTraffic="false" → FORÇA HTTPS (TLS 1.3)    ║
+    ╚══════════════════════════════════════════════════════════════╝
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        INTERNET: Necessária para comunicação com Firebase Auth e Google.
+        É uma permissão "normal" (não perigosa) — não requer aprovação do usuário.
+        Toda comunicação usa HTTPS (TLS 1.3) por padrão.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+        ACCESS_NETWORK_STATE: Permite verificar se há conexão antes de
+        tentar autenticação, evitando erros e consumo desnecessário.
+        Também é permissão "normal" (sem prompt ao usuário).
+    -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--
+        CAMERA: Permissão "perigosa" — requer aprovação explícita do usuário.
+        Solicitada em runtime via Jetpack Activity Result API.
+        Usada apenas para capturar fotos de eventos.
+        Fotos vão direto câmera → memória → criptografia → disco.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <application
+        android:allowBackup="false"
+        android:label="TSR App Run"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.TsrAppRun"
+        android:usesCleartextTraffic="false">
+
+        <!--
+            MainActivity: Única activity do app (Single Activity Pattern).
+            android:exported="true" é necessário para ser o launcher.
+            A navegação entre telas é feita via Compose (não via Intents).
+        -->
+        <activity
+            android:name="com.tsrapprun.android.MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

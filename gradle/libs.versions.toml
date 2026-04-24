@@ -1,0 +1,79 @@
+[versions]
+# ── Build Tools ──
+agp = "8.7.3"
+kotlin = "2.1.0"
+compose-multiplatform = "1.7.3"
+
+# ── AndroidX ──
+androidx-activityCompose = "1.9.3"
+androidx-lifecycle = "2.8.7"
+androidx-credentials = "1.3.0"
+androidx-security-crypto = "1.1.0-alpha06"
+# CameraX - API moderna de câmera do Android
+androidx-camera = "1.4.1"
+# ExifInterface - leitura de metadados de fotos importadas
+androidx-exifinterface = "1.3.7"
+
+# ── Kotlin Libraries ──
+kotlinx-coroutines = "1.9.0"
+kotlinx-serialization = "1.7.3"
+
+# ── Firebase & Google ──
+# Firebase BoM gerencia todas as versões do Firebase automaticamente
+firebase-bom = "33.7.0"
+google-services = "4.4.2"
+# Google Identity Services - SDK moderno para Sign-In
+googleid = "1.1.1"
+
+[libraries]
+# ── AndroidX Core ──
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidx-activityCompose" }
+androidx-lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+
+# ── AndroidX Credentials (gerenciamento seguro de credenciais) ──
+# API principal do Credential Manager - substitui o antigo GoogleSignInClient
+androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "androidx-credentials" }
+# Integração com Google Play Services para Credential Manager
+androidx-credentials-play = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "androidx-credentials" }
+# Biblioteca Google Identity para gerar requests de Sign-In
+google-id = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
+
+# ── AndroidX Security (criptografia de dados locais via Keystore) ──
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "androidx-security-crypto" }
+
+# ── CameraX (captura de fotos segura e moderna) ──
+# camera-core: API base do CameraX
+androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "androidx-camera" }
+# camera-camera2: implementação usando Camera2 API
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "androidx-camera" }
+# camera-lifecycle: integração com lifecycle (start/stop automático)
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "androidx-camera" }
+# camera-view: PreviewView para exibir preview da câmera
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "androidx-camera" }
+# ExifInterface: leitura segura de metadados EXIF de fotos importadas
+androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "androidx-exifinterface" }
+
+# ── Kotlin Libraries ──
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+
+# ── Firebase ──
+# BoM (Bill of Materials) garante compatibilidade entre todas as libs Firebase
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
+# Firebase Auth - autenticação com Google, email, etc.
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }
+# Firebase Firestore - banco de dados NoSQL em tempo real
+firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore-ktx" }
+# Firebase Storage - armazenamento de arquivos (fotos) na nuvem
+firebase-storage = { group = "com.google.firebase", name = "firebase-storage-ktx" }
+
+[plugins]
+androidApplication = { id = "com.android.application", version.ref = "agp" }
+androidLibrary = { id = "com.android.library", version.ref = "agp" }
+kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+googleServices = { id = "com.google.gms.google-services", version.ref = "google-services" }

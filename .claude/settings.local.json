@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -sL \"https://raw.githubusercontent.com/gradle/gradle/v8.10.2/gradlew\" -o gradlew)",
+      "Bash(chmod +x gradlew)",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/gradle/gradle/v8.10.2/gradlew.bat\" -o gradlew.bat)",
+      "Bash(curl -sL \"https://services.gradle.org/distributions/gradle-8.10.2-bin.zip\" -o /tmp/gradle-check.tmp)",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/gradle/gradle/v8.10.2/gradle/wrapper/gradle-wrapper.jar\" -o gradle/wrapper/gradle-wrapper.jar)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(code -v)",
+      "Bash(./gradlew.bat assembleDebug)",
+      "Bash(git pull *)",
+      "Bash(git remote *)",
+      "Bash(git fetch *)",
+      "Bash(git worktree *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
