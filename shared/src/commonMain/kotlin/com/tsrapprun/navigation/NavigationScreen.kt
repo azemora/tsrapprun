@@ -42,4 +42,7 @@ sealed class NavigationScreen {
         val initialIndex: Int,
         val eventId: String? = null
     ) : NavigationScreen()
+
+    /** Diário "Memória do Dia" — abrir via notificação diária. */
+    data class MemoryOfTheDay(val dateKey: String) : NavigationScreen()
 }

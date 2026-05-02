@@ -36,6 +36,13 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
+    <!--
+        POST_NOTIFICATIONS: permissão "perigosa" em Android 13+ (SDK 33).
+        Solicitada em runtime. Versões anteriores concedem automaticamente.
+        Usada APENAS para notificações locais (sem FCM/push remoto).
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:allowBackup="false"
         android:label="TSR App Run"

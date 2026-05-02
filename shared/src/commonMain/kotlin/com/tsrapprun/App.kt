@@ -29,6 +29,8 @@ import com.tsrapprun.gallery.GalleryScreen
 import com.tsrapprun.gallery.PhotoGridScreen
 import com.tsrapprun.gallery.PhotoViewerScreen
 import com.tsrapprun.navigation.NavigationScreen
+import com.tsrapprun.notifications.MemoryEntry
+import com.tsrapprun.notifications.MemoryOfTheDayScreen
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -44,7 +46,10 @@ data class AppCallbacks(
     val onDeletePhoto: suspend (PhotoData) -> Unit = {},
     val onLoadPhoto: suspend (PhotoData) -> ByteArray? = { null },
     val onUpdatePhotosEventId: suspend (List<String>, String) -> Unit = { _, _ -> },
-    val onRefreshData: suspend () -> Unit = {}
+    val onRefreshData: suspend () -> Unit = {},
+    // ── Memória do Dia ──
+    val onLoadMemoryEntry: suspend (String) -> MemoryEntry? = { null },
+    val onSaveMemoryEntry: suspend (MemoryEntry) -> Unit = {}
 )
 
 /**
@@ -61,10 +66,11 @@ data class AppUiState(
 fun App(
     authState: StateFlow<AuthState>,
     callbacks: AppCallbacks,
-    uiState: AppUiState
+    uiState: AppUiState,
+    initialScreen: NavigationScreen = NavigationScreen.Home
 ) {
     val currentAuthState by authState.collectAsState()
-    var screen by remember { mutableStateOf<NavigationScreen>(NavigationScreen.Home) }
+    var screen by remember { mutableStateOf<NavigationScreen>(initialScreen) }
     val scope = rememberCoroutineScope()
 
     MaterialTheme {
@@ -188,6 +194,16 @@ fun App(
                                 screen = NavigationScreen.PhotoViewer(index, nav.eventId)
                             },
                             onBack = { screen = NavigationScreen.Gallery }
+                        )
+                    }
+
+                    // ── Memória do Dia (acessada via notificação diária) ──
+                    is NavigationScreen.MemoryOfTheDay -> {
+                        MemoryOfTheDayScreen(
+                            dateKey = nav.dateKey,
+                            loadEntry = { callbacks.onLoadMemoryEntry(it) },
+                            saveEntry = { callbacks.onSaveMemoryEntry(it) },
+                            onBack = { screen = NavigationScreen.Home }
                         )
                     }
 

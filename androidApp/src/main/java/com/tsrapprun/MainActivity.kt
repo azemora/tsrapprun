@@ -2,12 +2,14 @@
  * ╔══════════════════════════════════════════════════════════════╗
  * ║  MainActivity.kt - Activity Principal                       ║
  * ║                                                             ║
- * ║  Inicializa repositórios, registra photo picker,            ║
- * ║  e conecta tudo à UI via AppCallbacks e AppUiState.         ║
+ * ║  Inicializa repositórios, registra photo picker, configura  ║
+ * ║  sistema de notificações (diário + throwbacks) e conecta    ║
+ * ║  tudo à UI via AppCallbacks e AppUiState.                   ║
  * ╚══════════════════════════════════════════════════════════════╝
  */
 package com.tsrapprun.android
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -27,6 +29,12 @@ import com.tsrapprun.AppUiState
 import com.tsrapprun.auth.AuthRepository
 import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.PhotoData
+import com.tsrapprun.navigation.NavigationScreen
+import com.tsrapprun.notifications.MemoryNotificationWorker
+import com.tsrapprun.notifications.MemoryOfTheDayRepository
+import com.tsrapprun.notifications.MemoryReminderService
+import com.tsrapprun.notifications.NotificationScheduler
+import com.tsrapprun.notifications.todayDateKey
 import com.tsrapprun.storage.LocalPhotoStorage
 import kotlinx.coroutines.launch
 import java.io.InputStream
@@ -37,12 +45,18 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var authRepository: AuthRepository
     private lateinit var photoStorage: LocalPhotoStorage
+    private lateinit var notificationScheduler: NotificationScheduler
+    private lateinit var memoryRepository: MemoryOfTheDayRepository
+    private lateinit var reminderService: MemoryReminderService
 
     // Estado reativo para a UI
     private var photoCount by mutableIntStateOf(0)
     private var storageUsedMB by mutableStateOf("0.0")
     private var events by mutableStateOf<List<EventData>>(emptyList())
     private var allPhotos by mutableStateOf<List<PhotoData>>(emptyList())
+
+    // Tela inicial derivada de deep link (pode ser sobrescrita ao receber notificação).
+    private var initialScreen: NavigationScreen = NavigationScreen.Home
 
     // Photo picker launcher (registrado antes de onCreate)
     private lateinit var photoPickerLauncher: ActivityResultLauncher<PickVisualMediaRequest>
@@ -67,11 +81,24 @@ class MainActivity : ComponentActivity() {
             webClientId = "869869816608-gq8gis31up7bkn4stvd9n5clk1k0i4oi.apps.googleusercontent.com"
         )
         photoStorage = LocalPhotoStorage(context = this)
+        notificationScheduler = NotificationScheduler(context = applicationContext, activity = this)
+        memoryRepository = MemoryOfTheDayRepository(context = applicationContext)
+        reminderService = MemoryReminderService(notificationScheduler)
 
-        // ── Verifica sessão + carrega dados ──
+        // ── Deep link: veio de notificação? ──
+        initialScreen = resolveInitialScreenFromIntent(intent)
+
+        // ── Sessão + dados + permissão + agendamento diário ──
         lifecycleScope.launch {
             authRepository.checkCurrentSession()
             refreshData()
+
+            // Pede permissão (Android 13+). Silenciosa em versões anteriores.
+            val granted = notificationScheduler.requestPermission()
+            if (granted) {
+                // 20:00 locais — horário razoável para revisão do dia.
+                notificationScheduler.scheduleDailyMemoryPrompt(hour = 20, minute = 0)
+            }
         }
 
         // ── Configura a UI ──
@@ -92,12 +119,19 @@ class MainActivity : ComponentActivity() {
                     },
                     onSaveEventPhoto = { bytes ->
                         val photo = photoStorage.savePhoto(imageBytes = bytes)
+                        // Agenda lembranças futuras (1s/1m/6m/1a) para a foto recém-capturada.
+                        reminderService.scheduleForPhoto(
+                            photoId = photo.id,
+                            capturedAtMs = photo.capturedAt
+                        )
                         photo.id
                     },
                     onSaveEvent = { event ->
                         photoStorage.saveEvent(event)
                     },
                     onDeletePhoto = { photo ->
+                        // Ao deletar a foto, cancela suas lembranças futuras.
+                        reminderService.cancelForPhoto(photo.id)
                         photoStorage.deletePhoto(photo)
                     },
                     onLoadPhoto = { photo ->
@@ -106,15 +140,45 @@ class MainActivity : ComponentActivity() {
                     onUpdatePhotosEventId = { photoIds, eventId ->
                         photoStorage.updatePhotosEventId(photoIds, eventId)
                     },
-                    onRefreshData = { refreshData() }
+                    onRefreshData = { refreshData() },
+                    onLoadMemoryEntry = { date -> memoryRepository.getEntry(date) },
+                    onSaveMemoryEntry = { entry -> memoryRepository.saveEntry(entry) }
                 ),
                 uiState = AppUiState(
                     photoCount = photoCount,
                     storageUsedMB = storageUsedMB,
                     events = events,
                     allPhotos = allPhotos
-                )
+                ),
+                initialScreen = initialScreen
             )
+        }
+    }
+
+    /**
+     * Activity launchMode é padrão; novas intents chegam aqui se o app estiver em foreground.
+     * Reavaliamos o deep link — mas a mudança só terá efeito na próxima setContent.
+     * Para simplicidade, apenas registramos — usuário pode navegar manualmente.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
+    /**
+     * Lê extras do Intent gerado pelo Worker de notificação.
+     * Se a notificação foi do tipo "daily", abre direto a tela de Memória do Dia.
+     */
+    private fun resolveInitialScreenFromIntent(intent: Intent?): NavigationScreen {
+        intent ?: return NavigationScreen.Home
+        val kind = intent.getStringExtra(MemoryNotificationWorker.EXTRA_DEEPLINK_KIND)
+            ?: return NavigationScreen.Home
+        return when (kind) {
+            MemoryNotificationWorker.KIND_DAILY,
+            MemoryNotificationWorker.KIND_REMINDER -> NavigationScreen.MemoryOfTheDay(
+                dateKey = todayDateKey(System.currentTimeMillis())
+            )
+            else -> NavigationScreen.Home
         }
     }
 
@@ -133,10 +197,16 @@ class MainActivity : ComponentActivity() {
                     ?: continue
 
                 // Salva criptografado com data EXIF preservada
-                photoStorage.savePhoto(
+                val saved = photoStorage.savePhoto(
                     imageBytes = bytes,
                     eventId = null,
                     capturedAt = exifDate
+                )
+                // Agenda lembranças futuras a partir da data REAL da foto (EXIF).
+                // Janelas já vencidas (foto antiga) são ignoradas pelo service.
+                reminderService.scheduleForPhoto(
+                    photoId = saved.id,
+                    capturedAtMs = saved.capturedAt
                 )
             } catch (e: Exception) {
                 // Pula fotos com erro, continua com as próximas

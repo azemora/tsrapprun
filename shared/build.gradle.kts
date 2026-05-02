@@ -90,6 +90,9 @@ kotlin {
             implementation(libs.androidx.camera.camera2)
             implementation(libs.androidx.camera.lifecycle)
             implementation(libs.androidx.camera.view)
+
+            // WorkManager — agendamento persistente de notificações locais
+            implementation(libs.androidx.work.runtime)
         }
     }
 }
