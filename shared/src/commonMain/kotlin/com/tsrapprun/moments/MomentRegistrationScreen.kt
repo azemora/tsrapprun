@@ -133,10 +133,10 @@ fun MomentRegistrationScreen(
 }
 
 private fun formatTodayDate(): String {
-    val cal = java.util.Calendar.getInstance()
-    val d = cal.get(java.util.Calendar.DAY_OF_MONTH)
-    val m = cal.get(java.util.Calendar.MONTH)
-    val y = cal.get(java.util.Calendar.YEAR)
+    val c = com.tsrapprun.platform.dateComponentsOf(com.tsrapprun.platform.nowMillis())
+    val d = c.day
+    val m = c.monthIndex
+    val y = c.year
     val months = listOf(
         "janeiro", "fevereiro", "mar\u00e7o", "abril", "maio", "junho",
         "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"

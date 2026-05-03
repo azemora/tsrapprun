@@ -172,9 +172,9 @@ fun GalleryScreen(
 }
 
 private fun formatDate(epochMillis: Long): String {
-    val cal = java.util.Calendar.getInstance().apply { timeInMillis = epochMillis }
-    val d = cal.get(java.util.Calendar.DAY_OF_MONTH).toString().padStart(2, '0')
-    val m = (cal.get(java.util.Calendar.MONTH) + 1).toString().padStart(2, '0')
-    val y = cal.get(java.util.Calendar.YEAR)
+    val c = com.tsrapprun.platform.dateComponentsOf(epochMillis)
+    val d = c.day.toString().padStart(2, '0')
+    val m = (c.monthIndex + 1).toString().padStart(2, '0')
+    val y = c.year
     return "$d/$m/$y"
 }

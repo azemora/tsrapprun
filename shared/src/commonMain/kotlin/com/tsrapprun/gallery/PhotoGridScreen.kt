@@ -377,8 +377,8 @@ private fun PhotoThumbnailCell(
 }
 
 private fun formatShortDate(epochMillis: Long): String {
-    val cal = java.util.Calendar.getInstance().apply { timeInMillis = epochMillis }
-    val d = cal.get(java.util.Calendar.DAY_OF_MONTH).toString().padStart(2, '0')
-    val m = (cal.get(java.util.Calendar.MONTH) + 1).toString().padStart(2, '0')
+    val c = com.tsrapprun.platform.dateComponentsOf(epochMillis)
+    val d = c.day.toString().padStart(2, '0')
+    val m = (c.monthIndex + 1).toString().padStart(2, '0')
     return "$d/$m"
 }

@@ -298,11 +298,11 @@ private fun EventCard(event: EventData, onClick: () -> Unit) {
 /** Formata epoch millis para DD/MM/YYYY HH:mm. */
 private fun formatDate(epochMillis: Long): String {
     // Formato simples sem dependência de java.time (compatível com minSdk 24)
-    val cal = java.util.Calendar.getInstance().apply { timeInMillis = epochMillis }
-    val day = cal.get(java.util.Calendar.DAY_OF_MONTH).toString().padStart(2, '0')
-    val month = (cal.get(java.util.Calendar.MONTH) + 1).toString().padStart(2, '0')
-    val year = cal.get(java.util.Calendar.YEAR)
-    val hour = cal.get(java.util.Calendar.HOUR_OF_DAY).toString().padStart(2, '0')
-    val min = cal.get(java.util.Calendar.MINUTE).toString().padStart(2, '0')
+    val c = com.tsrapprun.platform.dateComponentsOf(epochMillis)
+    val day = c.day.toString().padStart(2, '0')
+    val month = (c.monthIndex + 1).toString().padStart(2, '0')
+    val year = c.year
+    val hour = c.hour.toString().padStart(2, '0')
+    val min = c.minute.toString().padStart(2, '0')
     return "$day/$month/$year $hour:$min"
 }

@@ -37,6 +37,10 @@ import com.tsrapprun.gallery.EventMenuActions
 import com.tsrapprun.gallery.PhotoGridScreen
 import com.tsrapprun.gallery.PhotoViewerScreen
 import com.tsrapprun.navigation.NavigationScreen
+import com.tsrapprun.platform.dayBoundsMillis
+import com.tsrapprun.platform.newUuid
+import com.tsrapprun.platform.nowMillis
+import com.tsrapprun.platform.weekBoundsMillis
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -160,11 +164,11 @@ fun App(
                             photoCount = nav.photoIds.size,
                             onSave = { eventName ->
                                 scope.launch {
-                                    val eventId = java.util.UUID.randomUUID().toString()
+                                    val eventId = newUuid()
                                     val event = EventData(
                                         id = eventId,
                                         name = eventName,
-                                        createdAt = System.currentTimeMillis(),
+                                        createdAt = nowMillis(),
                                         photoCount = nav.photoIds.size,
                                         thumbnailPhotoId = nav.photoIds.firstOrNull()
                                     )
@@ -298,30 +302,15 @@ fun App(
                             type = momentType,
                             onSave = { text ->
                                 scope.launch {
-                                    val now = System.currentTimeMillis()
-                                    val cal = java.util.Calendar.getInstance()
-
-                                    val periodStart: Long
-                                    val periodEnd: Long
-                                    if (momentType == MomentType.WEEKLY) {
-                                        cal.set(java.util.Calendar.DAY_OF_WEEK, cal.firstDayOfWeek)
-                                        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
-                                        cal.set(java.util.Calendar.MINUTE, 0)
-                                        cal.set(java.util.Calendar.SECOND, 0)
-                                        periodStart = cal.timeInMillis
-                                        cal.add(java.util.Calendar.WEEK_OF_YEAR, 1)
-                                        periodEnd = cal.timeInMillis
+                                    val now = nowMillis()
+                                    val (periodStart, periodEnd) = if (momentType == MomentType.WEEKLY) {
+                                        weekBoundsMillis()
                                     } else {
-                                        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
-                                        cal.set(java.util.Calendar.MINUTE, 0)
-                                        cal.set(java.util.Calendar.SECOND, 0)
-                                        periodStart = cal.timeInMillis
-                                        cal.add(java.util.Calendar.DAY_OF_YEAR, 1)
-                                        periodEnd = cal.timeInMillis
+                                        dayBoundsMillis()
                                     }
 
                                     val moment = MomentEntry(
-                                        id = java.util.UUID.randomUUID().toString(),
+                                        id = newUuid(),
                                         text = text,
                                         type = momentType,
                                         createdAt = now,
