@@ -17,3 +17,18 @@ data class DateTimeComponents(
 )
 
 expect fun dateComponentsOf(epochMillis: Long): DateTimeComponents
+
+/**
+ * Constrói epoch millis a partir de componentes locais (calendário do
+ * dispositivo). Usado para data de nascimento — recebida do usuário
+ * como dia/mês/ano.
+ *
+ * @param monthIndex 0..11 (janeiro = 0, dezembro = 11).
+ */
+expect fun epochMillisFromComponents(
+    year: Int,
+    monthIndex: Int,
+    day: Int,
+    hour: Int = 0,
+    minute: Int = 0
+): Long

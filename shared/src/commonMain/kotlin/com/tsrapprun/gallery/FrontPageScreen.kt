@@ -1,17 +1,13 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
- * ║  FrontPageScreen.kt - Tela Inicial Visual                    ║
- * ║                                                             ║
- * ║  Inspirada em UI de galeria moderna:                        ║
- * ║  - Reels/stories no topo (eventos para revisitar)           ║
- * ║  - Grid masonry de preview de eventos/álbuns                ║
- * ║  - Botão central "Criar" na bottom bar                      ║
- * ║  - Ícone de engrenagem → tela de gerenciamento              ║
+ * ║  FrontPageScreen.kt — Tela inicial cozy                      ║
+ * ║                                                              ║
+ * ║  Hero card no topo (saudação + stats), atalhos coloridos,    ║
+ * ║  reels horizontais e grid de eventos. Bottom bar flutuante. ║
  * ╚══════════════════════════════════════════════════════════════╝
  */
 package com.tsrapprun.gallery
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,15 +35,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,18 +61,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.PhotoData
+import com.tsrapprun.ui.theme.CozyAmber
+import com.tsrapprun.ui.theme.CozyCream
+import com.tsrapprun.ui.theme.CozyCreamDeep
+import com.tsrapprun.ui.theme.CozyGold
+import com.tsrapprun.ui.theme.CozyInk
+import com.tsrapprun.ui.theme.CozyOlive
+import com.tsrapprun.ui.theme.CozySage
+import com.tsrapprun.ui.theme.CozySageMist
+import com.tsrapprun.ui.theme.CozyTan
 
-/**
- * Tela inicial visual do app.
- *
- * @param events Lista de eventos criados.
- * @param allPhotos Todas as fotos para lookup de thumbnails.
- * @param onLoadThumbnail Carrega bytes de uma foto para thumbnail.
- * @param onOpenEvent Abre grid de fotos de um evento.
- * @param onOpenEventList Abre lista completa de eventos ("Ver tudo").
- * @param onCreate Abre fluxo de criação de evento (câmera).
- * @param onOpenSettings Abre tela de gerenciamento (Home atual).
- */
 @Composable
 fun FrontPageScreen(
     events: List<EventData>,
@@ -98,81 +87,108 @@ fun FrontPageScreen(
         events.sortedByDescending { it.createdAt }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(CozySageMist, CozyCream)
+                )
+            )
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // ── Conteúdo scrollável ──
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = 100.dp) // espaço para o botão Criar
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 110.dp)
+        ) {
+            TopBar(onOpenSettings = onOpenSettings, onOpenMoments = onOpenMoments)
+
+            Spacer(Modifier.height(8.dp))
+
+            // ── Hero card (clicável → lista de eventos) ──
+            HeroCard(
+                eventCount = events.size,
+                photoCount = allPhotos.size,
+                onClick = onOpenEventList
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            // ── Atalhos coloridos (estilo cards da referência) ──
+            QuickActions(
+                onCreate = onCreate,
+                onOpenMoments = onOpenMoments,
+                onOpenMemoryBook = onOpenMemoryBook,
+                hasEvents = sortedEvents.isNotEmpty()
+            )
+
+            // ── Reels (se tiver eventos) ──
+            if (sortedEvents.isNotEmpty()) {
+                Spacer(Modifier.height(28.dp))
+                SectionHeader(
+                    title = "reviva",
+                    actionLabel = if (events.size > 10) "ver tudo" else null,
+                    onAction = onOpenEventList
+                )
+                Spacer(Modifier.height(12.dp))
+                EventReelsRow(
+                    events = sortedEvents,
+                    allPhotos = allPhotos,
+                    onLoadThumbnail = onLoadThumbnail,
+                    onOpenEvent = onOpenEvent
+                )
+            }
+
+            // ── Grid masonry ──
+            Spacer(Modifier.height(28.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // ── Top Bar ──
-                TopBar(onOpenSettings = onOpenSettings, onOpenMoments = onOpenMoments)
-
-                // ── Reels de Eventos ──
-                if (sortedEvents.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    EventReelsRow(
-                        events = sortedEvents,
-                        allPhotos = allPhotos,
-                        onLoadThumbnail = onLoadThumbnail,
-                        onOpenEvent = onOpenEvent
-                    )
-                }
-
-                // ── Seção: Seus Eventos ──
-                Spacer(modifier = Modifier.height(20.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Text(
+                    "seus eventos",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = CozyOlive
+                )
+                if (events.isNotEmpty()) {
                     Text(
-                        "Seus Eventos",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        "ver tudo",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = CozyAmber,
+                        modifier = Modifier.clickable(onClick = onOpenEventList)
                     )
-                    if (events.isNotEmpty()) {
-                        Text(
-                            "Ver tudo",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.clickable(onClick = onOpenEventList)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // ── Grid Masonry de Eventos ──
-                if (sortedEvents.isNotEmpty()) {
-                    EventMasonryGrid(
-                        events = sortedEvents,
-                        allPhotos = allPhotos,
-                        onLoadThumbnail = onLoadThumbnail,
-                        onOpenEvent = onOpenEvent
-                    )
-                } else {
-                    // ── Estado vazio ──
-                    EmptyState()
                 }
             }
 
-            // ── Bottom Bar com botões ──
-            BottomCreateBar(
-                onCreate = onCreate,
-                onOpenMemoryBook = onOpenMemoryBook,
-                hasEvents = sortedEvents.isNotEmpty(),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-            )
+            Spacer(Modifier.height(14.dp))
+
+            if (sortedEvents.isNotEmpty()) {
+                EventMasonryGrid(
+                    events = sortedEvents,
+                    allPhotos = allPhotos,
+                    onLoadThumbnail = onLoadThumbnail,
+                    onOpenEvent = onOpenEvent
+                )
+            } else {
+                EmptyState()
+            }
         }
+
+        // ── Bottom bar flutuante ──
+        BottomCreateBar(
+            onCreate = onCreate,
+            onOpenMemoryBook = onOpenMemoryBook,
+            hasEvents = sortedEvents.isNotEmpty(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+        )
     }
 }
 
@@ -185,35 +201,263 @@ private fun TopBar(onOpenSettings: () -> Unit, onOpenMoments: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(horizontal = 24.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "TSR App",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.weight(1f))
-        // Ícone registros → Aba Registros
-        IconButton(onClick = onOpenMoments) {
+        Surface(
+            modifier = Modifier.size(36.dp),
+            shape = CircleShape,
+            color = CozySage
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text("🌿", fontSize = 18.sp)
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Column {
             Text(
-                text = "\uD83D\uDCDD",  // 📝
-                fontSize = 22.sp
+                "olá!",
+                fontSize = 13.sp,
+                color = CozyOlive.copy(alpha = 0.7f)
+            )
+            Text(
+                "TSR App",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = CozyOlive
             )
         }
-        // Ícone engrenagem → Gerenciamento
-        IconButton(onClick = onOpenSettings) {
+
+        Spacer(Modifier.weight(1f))
+
+        IconChip(emoji = "📝", onClick = onOpenMoments)
+        Spacer(Modifier.width(8.dp))
+        IconChip(emoji = "⚙️", onClick = onOpenSettings)
+    }
+}
+
+@Composable
+private fun IconChip(emoji: String, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.size(40.dp).clickable(onClick = onClick),
+        shape = CircleShape,
+        color = CozyCream,
+        border = androidx.compose.foundation.BorderStroke(1.dp, CozyTan)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(emoji, fontSize = 18.sp)
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════
+// HERO CARD (saudação + stats)
+// ═══════════════════════════════════════════════════
+
+@Composable
+private fun HeroCard(eventCount: Int, photoCount: Int, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = CozySage),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("🍃", fontSize = 24.sp)
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "suas memórias",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Column {
+                    Text(
+                        "$photoCount",
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        lineHeight = 50.sp
+                    )
+                    Text(
+                        "fotos guardadas",
+                        fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.85f)
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White.copy(alpha = 0.18f)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "$eventCount",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            if (eventCount == 1) "evento" else "eventos",
+                            fontSize = 11.sp,
+                            color = Color.White.copy(alpha = 0.85f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════
+// QUICK ACTIONS (cards coloridos)
+// ═══════════════════════════════════════════════════
+
+@Composable
+private fun QuickActions(
+    onCreate: () -> Unit,
+    onOpenMoments: () -> Unit,
+    onOpenMemoryBook: () -> Unit,
+    hasEvents: Boolean
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        ActionCard(
+            modifier = Modifier.weight(1f),
+            label = "registrar\nmomento",
+            emoji = "📷",
+            bg = CozyAmber,
+            fg = Color.White,
+            onClick = onCreate
+        )
+        ActionCard(
+            modifier = Modifier.weight(1f),
+            label = "registros\ndo dia",
+            emoji = "✍️",
+            bg = CozyGold,
+            fg = Color.White,
+            onClick = onOpenMoments
+        )
+    }
+    Spacer(Modifier.height(12.dp))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        ActionCard(
+            modifier = Modifier.weight(1f),
+            label = "livro de\nmemórias",
+            emoji = "📖",
+            bg = CozyTan,
+            fg = CozyInk,
+            enabled = hasEvents,
+            onClick = onOpenMemoryBook
+        )
+        ActionCard(
+            modifier = Modifier.weight(1f),
+            label = "todas\nas fotos",
+            emoji = "🖼️",
+            bg = CozyCreamDeep,
+            fg = CozyInk,
+            onClick = { /* TODO: open all photos */ }
+        )
+    }
+}
+
+@Composable
+private fun ActionCard(
+    modifier: Modifier = Modifier,
+    label: String,
+    emoji: String,
+    bg: Color,
+    fg: Color,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .height(110.dp)
+            .clickable(enabled = enabled, onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (enabled) bg else bg.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(emoji, fontSize = 28.sp)
             Text(
-                text = "\u2699",  // ⚙
-                fontSize = 24.sp,
-                color = MaterialTheme.colorScheme.onSurface
+                label,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = fg,
+                lineHeight = 18.sp
             )
         }
     }
 }
 
 // ═══════════════════════════════════════════════════
-// REELS DE EVENTOS (stories circulares)
+// SECTION HEADER
+// ═══════════════════════════════════════════════════
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    actionLabel: String? = null,
+    onAction: () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            title,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = CozyOlive
+        )
+        if (actionLabel != null) {
+            Text(
+                actionLabel,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = CozyAmber,
+                modifier = Modifier.clickable(onClick = onAction)
+            )
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════
+// REELS DE EVENTOS
 // ═══════════════════════════════════════════════════
 
 @Composable
@@ -224,7 +468,7 @@ private fun EventReelsRow(
     onOpenEvent: (EventData) -> Unit
 ) {
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 20.dp),
+        contentPadding = PaddingValues(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(events.take(10), key = { it.id }) { event ->
@@ -267,29 +511,25 @@ private fun EventReelCircle(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.clickable(onClick = onClick)
     ) {
-        // Círculo com borda gradiente (estilo Instagram)
         Box(
             modifier = Modifier
-                .size(72.dp)
+                .size(76.dp)
                 .border(
-                    width = 2.dp,
+                    width = 2.5.dp,
                     brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color(0xFFE8715A),  // coral
-                            Color(0xFFF2994A),  // laranja
-                            Color(0xFFE8715A)
-                        )
+                        colors = listOf(CozyAmber, CozyGold, CozyAmber)
                     ),
                     shape = CircleShape
                 )
                 .padding(3.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(CozyCream),
             contentAlignment = Alignment.Center
         ) {
             when {
                 isLoading -> CircularProgressIndicator(
                     modifier = Modifier.size(20.dp),
+                    color = CozySage,
                     strokeWidth = 2.dp
                 )
                 thumbnail != null -> Image(
@@ -300,28 +540,30 @@ private fun EventReelCircle(
                 )
                 else -> Text(
                     text = event.name.take(1).uppercase(),
-                    fontSize = 24.sp,
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = CozyOlive
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(Modifier.height(6.dp))
 
         Text(
             text = event.name,
-            style = MaterialTheme.typography.labelSmall,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = CozyOlive,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
-            modifier = Modifier.width(72.dp)
+            modifier = Modifier.width(76.dp)
         )
     }
 }
 
 // ═══════════════════════════════════════════════════
-// GRID MASONRY DE EVENTOS
+// GRID MASONRY
 // ═══════════════════════════════════════════════════
 
 @Composable
@@ -331,18 +573,16 @@ private fun EventMasonryGrid(
     onLoadThumbnail: suspend (PhotoData) -> ByteArray?,
     onOpenEvent: (EventData) -> Unit
 ) {
-    // Distribui eventos em 2 colunas alternadas
     val leftColumn = events.filterIndexed { i, _ -> i % 2 == 0 }
     val rightColumn = events.filterIndexed { i, _ -> i % 2 == 1 }
 
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Coluna esquerda - cards maiores (aspect ratio 0.75)
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             leftColumn.forEachIndexed { index, event ->
                 EventPreviewCard(
@@ -350,16 +590,13 @@ private fun EventMasonryGrid(
                     allPhotos = allPhotos,
                     onLoadThumbnail = onLoadThumbnail,
                     onClick = { onOpenEvent(event) },
-                    // Alterna entre cards altos e quadrados
-                    aspectRatio = if (index % 2 == 0) 0.75f else 1f
+                    aspectRatio = if (index % 2 == 0) 0.78f else 1f
                 )
             }
         }
-
-        // Coluna direita - padrão invertido
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             rightColumn.forEachIndexed { index, event ->
                 EventPreviewCard(
@@ -367,7 +604,7 @@ private fun EventMasonryGrid(
                     allPhotos = allPhotos,
                     onLoadThumbnail = onLoadThumbnail,
                     onClick = { onOpenEvent(event) },
-                    aspectRatio = if (index % 2 == 0) 1f else 0.75f
+                    aspectRatio = if (index % 2 == 0) 1f else 0.78f
                 )
             }
         }
@@ -405,18 +642,21 @@ private fun EventPreviewCard(
             .fillMaxWidth()
             .aspectRatio(aspectRatio)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(22.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(containerColor = CozyCreamDeep)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Thumbnail de fundo
             when {
                 isLoading -> Box(
-                    modifier = Modifier.fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    modifier = Modifier.fillMaxSize().background(CozyCreamDeep),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(strokeWidth = 2.dp)
+                    CircularProgressIndicator(
+                        color = CozySage,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
                 thumbnail != null -> Image(
                     bitmap = thumbnail!!,
@@ -425,20 +665,19 @@ private fun EventPreviewCard(
                     contentScale = ContentScale.Crop
                 )
                 else -> Box(
-                    modifier = Modifier.fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    modifier = Modifier.fillMaxSize().background(CozyTan.copy(alpha = 0.5f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = event.name.take(2).uppercase(),
-                        fontSize = 32.sp,
+                        fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                        color = CozyOlive.copy(alpha = 0.55f)
                     )
                 }
             }
 
-            // Overlay com gradiente na parte inferior
+            // Overlay com gradiente suave + nome
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -447,11 +686,11 @@ private fun EventPreviewCard(
                         Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.7f)
+                                Color.Black.copy(alpha = 0.55f)
                             )
                         )
                     )
-                    .padding(12.dp)
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
             ) {
                 Column {
                     Text(
@@ -463,8 +702,8 @@ private fun EventPreviewCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${event.photoCount} fotos",
-                        color = Color.White.copy(alpha = 0.7f),
+                        text = "${event.photoCount} ${if (event.photoCount == 1) "foto" else "fotos"}",
+                        color = Color.White.copy(alpha = 0.85f),
                         fontSize = 11.sp
                     )
                 }
@@ -474,7 +713,7 @@ private fun EventPreviewCard(
 }
 
 // ═══════════════════════════════════════════════════
-// BOTTOM BAR COM BOTÃO CRIAR
+// BOTTOM CREATE BAR
 // ═══════════════════════════════════════════════════
 
 @Composable
@@ -487,92 +726,101 @@ private fun BottomCreateBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        MaterialTheme.colorScheme.background.copy(alpha = 0.95f),
-                        MaterialTheme.colorScheme.background
-                    )
-                )
-            )
-            .padding(vertical = 16.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(36.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            // Botão "Ver Livro" (só aparece se tem eventos)
-            if (hasEvents) {
-                OutlinedButton(
-                    onClick = onOpenMemoryBook,
-                    modifier = Modifier.height(56.dp).weight(1f),
-                    shape = RoundedCornerShape(28.dp),
-                    border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
-                ) {
-                    Text(
-                        text = "\uD83D\uDCD6 Livro",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            Button(
-                onClick = onCreate,
-                modifier = Modifier.height(56.dp).then(
-                    if (hasEvents) Modifier.weight(1f) else Modifier.fillMaxWidth(0.5f)
-                ),
-                shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
-                elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = 8.dp
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "+ Criar",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                // Botão home (ativo) — verde sage com badge "+"
+                Surface(
+                    modifier = Modifier
+                        .height(52.dp)
+                        .weight(1f)
+                        .clickable(onClick = onCreate),
+                    shape = RoundedCornerShape(26.dp),
+                    color = CozySage
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("📸", fontSize = 18.sp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "registrar",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White
+                        )
+                    }
+                }
+
+                if (hasEvents) {
+                    Surface(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clickable(onClick = onOpenMemoryBook),
+                        shape = CircleShape,
+                        color = CozyCream,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CozyTan)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("📖", fontSize = 22.sp)
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 // ═══════════════════════════════════════════════════
-// ESTADO VAZIO
+// EMPTY STATE
 // ═══════════════════════════════════════════════════
 
 @Composable
 private fun EmptyState() {
-    Column(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 40.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(horizontal = 20.dp),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = CozyCream),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Text(
-            text = "\uD83D\uDCF7",  // camera emoji
-            fontSize = 48.sp
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Nenhum evento ainda",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Toque em \"Criar\" para registrar\nseu primeiro evento!",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-            textAlign = TextAlign.Center
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp, vertical = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("🌱", fontSize = 56.sp)
+            Spacer(Modifier.height(16.dp))
+            Text(
+                "sem eventos ainda",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = CozyOlive
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "toque em \"registrar\"\npara plantar a primeira memória",
+                fontSize = 13.sp,
+                color = CozyOlive.copy(alpha = 0.65f),
+                textAlign = TextAlign.Center,
+                lineHeight = 19.sp
+            )
+        }
     }
 }

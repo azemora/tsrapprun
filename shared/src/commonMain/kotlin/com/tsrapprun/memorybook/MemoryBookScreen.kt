@@ -62,7 +62,8 @@ fun MemoryBookScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF2C2C2C)) // fundo escuro (mesa)
+            // Fundo "mesa de madeira clara" — aconchegante em vez de escuro
+            .background(Color(0xFF54683E)) // verde oliva profundo da paleta cozy
     ) {
         // ── Livro (pager com animação de virar página) ──
         HorizontalPager(
@@ -138,7 +139,7 @@ fun MemoryBookScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
-                .background(Color.Black.copy(alpha = 0.4f))
+                .background(Color.Black.copy(alpha = 0.25f))
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically

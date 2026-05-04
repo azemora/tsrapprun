@@ -369,11 +369,48 @@ private fun PhotoThumbnailCell(
                 }
             }
             else -> {
-                Text("Erro", fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.5f))
+                // Decoder não disponível (ex: iOS sem decode JPEG implementado).
+                // Em vez de "Erro", mostra um pastel determinístico por foto pra
+                // diferenciá-las visualmente — útil em modo simulação.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(pastelColorFor(photo.id))
+                ) {
+                    Box(
+                        modifier = Modifier.align(Alignment.BottomStart)
+                            .background(Color.Black.copy(alpha = 0.4f))
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = formatShortDate(photo.capturedAt),
+                            fontSize = 9.sp,
+                            color = Color.White
+                        )
+                    }
+                }
             }
         }
     }
+}
+
+/** Paleta pastel determinística — derivada do hash do id da foto. */
+private val PastelPalette: List<Color> = listOf(
+    Color(0xFFE8C4B8), // pêssego
+    Color(0xFFD4E0C9), // sage claro
+    Color(0xFFF1DCBE), // areia clara
+    Color(0xFFC9DBE8), // azul céu
+    Color(0xFFE6CFE8), // lilás
+    Color(0xFFE0D9C8), // creme
+    Color(0xFFC8E0D7), // verde menta
+    Color(0xFFF2D6D2)  // rosa pó
+)
+
+private fun pastelColorFor(id: String): Color {
+    if (id.isEmpty()) return PastelPalette[0]
+    var h = 0
+    for (c in id) h = (h * 31 + c.code) and 0x7FFFFFFF
+    return PastelPalette[h % PastelPalette.size]
 }
 
 private fun formatShortDate(epochMillis: Long): String {

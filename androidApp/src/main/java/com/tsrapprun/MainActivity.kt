@@ -29,8 +29,13 @@ import com.tsrapprun.AppUiState
 import com.tsrapprun.auth.AuthRepository
 import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.PhotoData
+import com.tsrapprun.child.ChildProfile
+import com.tsrapprun.child.ChildProfileSanitizer
+import com.tsrapprun.child.MilestoneSynthesizer
 import com.tsrapprun.moments.MomentEntry
 import com.tsrapprun.android.notifications.MomentNotificationWorker
+import com.tsrapprun.platform.newUuid
+import com.tsrapprun.platform.nowMillis
 import com.tsrapprun.storage.LocalPhotoStorage
 import kotlinx.coroutines.launch
 import java.io.InputStream
@@ -48,6 +53,8 @@ class MainActivity : ComponentActivity() {
     private var events by mutableStateOf<List<EventData>>(emptyList())
     private var allPhotos by mutableStateOf<List<PhotoData>>(emptyList())
     private var moments by mutableStateOf<List<MomentEntry>>(emptyList())
+    private var childProfile by mutableStateOf<ChildProfile?>(null)
+    private var pendingMesversario by mutableStateOf(0)
 
     // Photo picker launcher (registrado antes de onCreate)
     private lateinit var photoPickerLauncher: ActivityResultLauncher<PickVisualMediaRequest>
@@ -143,14 +150,45 @@ class MainActivity : ComponentActivity() {
                     onDeleteMoment = { momentId ->
                         photoStorage.deleteMoment(momentId)
                     },
-                    onRefreshData = { refreshData() }
+                    onRefreshData = { refreshData() },
+                    onSaveChildProfile = { firstName, birthdateMillis ->
+                        when (val result = ChildProfileSanitizer.sanitize(firstName, birthdateMillis, nowMillis())) {
+                            is ChildProfileSanitizer.Result.Valid -> {
+                                val existing = photoStorage.getChildProfile()
+                                photoStorage.saveChildProfile(
+                                    ChildProfile(
+                                        id = existing?.id ?: newUuid(),
+                                        firstName = result.firstName,
+                                        birthdateMillis = result.birthdateMillis,
+                                        lastSeenMonthCount = existing?.lastSeenMonthCount ?: 0,
+                                        lastSeenWeekCount = existing?.lastSeenWeekCount ?: 0
+                                    )
+                                )
+                            }
+                            is ChildProfileSanitizer.Result.Invalid -> { /* ignore — caller validates */ }
+                        }
+                    },
+                    onTestNotification = {
+                        // Dispara um worker imediato para testar o canal/permissão.
+                        val testWork = androidx.work.OneTimeWorkRequestBuilder<MomentNotificationWorker>()
+                            .setInputData(
+                                androidx.work.Data.Builder()
+                                    .putString("notification_type", "DAILY")
+                                    .build()
+                            )
+                            .setInitialDelay(5, java.util.concurrent.TimeUnit.SECONDS)
+                            .build()
+                        androidx.work.WorkManager.getInstance(this@MainActivity).enqueue(testWork)
+                    }
                 ),
                 uiState = AppUiState(
                     photoCount = photoCount,
                     storageUsedMB = storageUsedMB,
                     events = events,
                     allPhotos = allPhotos,
-                    moments = moments
+                    moments = moments,
+                    childProfile = childProfile,
+                    pendingMesversarioMonth = pendingMesversario
                 )
             )
         }
@@ -233,6 +271,23 @@ class MainActivity : ComponentActivity() {
     }
 
     private suspend fun refreshData() {
+        // Carrega perfil + sintetiza marcos antes de carregar listas
+        val profile = photoStorage.getChildProfile()
+        childProfile = profile
+        if (profile != null) {
+            val result = MilestoneSynthesizer.synthesizeFor(profile, photoStorage)
+            if (result.hasNewMesversario && result.latestNewMonth > profile.lastSeenMonthCount) {
+                pendingMesversario = result.latestNewMonth
+            }
+            if (result.hasNewMesversario || result.newWeekEntries > 0) {
+                val updated = profile.copy(
+                    lastSeenMonthCount = maxOf(profile.lastSeenMonthCount, result.latestNewMonth),
+                    lastSeenWeekCount = maxOf(profile.lastSeenWeekCount, result.currentAge.weeks)
+                )
+                photoStorage.saveChildProfile(updated)
+                childProfile = updated
+            }
+        }
         allPhotos = photoStorage.listPhotos()
         photoCount = allPhotos.size
         events = photoStorage.listEvents()

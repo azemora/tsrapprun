@@ -20,10 +20,27 @@
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.869869816608-k0lj5c7ti2r00fhqgbuqdgqc0uulhptd</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>O tsrapprun precisa da câmera para registrar fotos dos seus eventos e momentos.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>O tsrapprun pode salvar fotos editadas na sua biblioteca.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O tsrapprun pode importar fotos existentes para os seus eventos.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

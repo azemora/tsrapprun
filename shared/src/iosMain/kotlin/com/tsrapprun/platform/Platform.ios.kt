@@ -9,6 +9,7 @@ import platform.Foundation.NSCalendarUnitWeekOfYear
 import platform.Foundation.NSCalendarUnitWeekday
 import platform.Foundation.NSCalendarUnitYear
 import platform.Foundation.NSDate
+import platform.Foundation.NSDateComponents
 import platform.Foundation.NSUUID
 import platform.Foundation.dateWithTimeIntervalSince1970
 import platform.Foundation.timeIntervalSince1970
@@ -54,6 +55,26 @@ actual fun weekBoundsMillis(): Pair<Long, Long> {
     val startMs = (startOfWeek.timeIntervalSince1970 * 1000.0).toLong()
     val endMs = (nextWeek.timeIntervalSince1970 * 1000.0).toLong()
     return startMs to endMs
+}
+
+actual fun epochMillisFromComponents(
+    year: Int,
+    monthIndex: Int,
+    day: Int,
+    hour: Int,
+    minute: Int
+): Long {
+    val cal = NSCalendar.currentCalendar
+    val components = NSDateComponents().apply {
+        this.year = year.toLong()
+        this.month = (monthIndex + 1).toLong()
+        this.day = day.toLong()
+        this.hour = hour.toLong()
+        this.minute = minute.toLong()
+        this.second = 0
+    }
+    val date = cal.dateFromComponents(components) ?: return 0L
+    return (date.timeIntervalSince1970 * 1000.0).toLong()
 }
 
 actual fun dateComponentsOf(epochMillis: Long): DateTimeComponents {

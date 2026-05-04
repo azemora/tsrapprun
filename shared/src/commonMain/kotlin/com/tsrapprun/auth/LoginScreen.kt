@@ -1,39 +1,32 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
- * ║  LoginScreen.kt - Tela de Login com Google                  ║
- * ║                                                             ║
- * ║  Tela compartilhada entre Android e iOS usando Compose      ║
- * ║  Multiplatform. Mesma UI em ambas as plataformas.           ║
- * ║                                                             ║
- * ║  DESIGN:                                                    ║
- * ║  - Botão "Entrar com Google" seguindo guidelines oficiais   ║
- * ║  - Indicador de carregamento durante autenticação           ║
- * ║  - Mensagem de erro com opção de tentar novamente           ║
- * ║  - Informação sobre proteção de dados (transparência)       ║
- * ║                                                             ║
- * ║  SEGURANÇA:                                                 ║
- * ║  - Nenhum dado sensível é exibido na tela                   ║
- * ║  - Mensagens de erro são genéricas                          ║
- * ║  - Transparência sobre uso de dados (LGPD/GDPR)            ║
+ * ║  LoginScreen.kt — Tela de login (paleta cozy)                ║
  * ╚══════════════════════════════════════════════════════════════╝
  */
 package com.tsrapprun.auth
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -42,99 +35,90 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tsrapprun.ui.theme.CozyAmber
+import com.tsrapprun.ui.theme.CozyCream
+import com.tsrapprun.ui.theme.CozyGold
+import com.tsrapprun.ui.theme.CozyOlive
+import com.tsrapprun.ui.theme.CozySage
+import com.tsrapprun.ui.theme.CozySageMist
 
-/**
- * Tela de login principal.
- *
- * Exibe o botão de login com Google e informações sobre
- * proteção de dados. Reage ao [AuthState] para mostrar
- * loading, erro ou o botão de login.
- *
- * @param authState Estado atual da autenticação.
- * @param onSignInClick Callback chamado quando o usuário toca
- *                      no botão "Entrar com Google".
- *                      A Activity/ViewController chama
- *                      AuthRepository.signInWithGoogle().
- */
 @Composable
 fun LoginScreen(
     authState: AuthState,
     onSignInClick: () -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(CozySageMist, CozyCream)
+                )
+            )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(horizontal = 28.dp, vertical = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // ── Logo / Título do App ──
-            Text(
-                text = "TSR App Run",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Fotos de eventos, seguras e organizadas",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(48.dp))
-
-            // ── Conteúdo dinâmico baseado no estado ──
-            when (authState) {
-                // Estado: Carregando (verificando sessão ou fazendo login)
-                is AuthState.Loading -> {
-                    LoadingContent()
-                }
-
-                // Estado: Não autenticado (mostra botão de login)
-                is AuthState.Unauthenticated -> {
-                    GoogleSignInButton(onClick = onSignInClick)
-                }
-
-                // Estado: Erro (mostra mensagem + botão de tentar novamente)
-                is AuthState.Error -> {
-                    ErrorContent(
-                        message = authState.message,
-                        onRetryClick = onSignInClick
-                    )
-                }
-
-                // Estado: Autenticado — esta tela não deveria ser visível
-                // (o App.kt navega para a tela principal)
-                is AuthState.Authenticated -> {
-                    // Não renderiza nada — a navegação cuidará disso
-                }
+            // ── Símbolo / mascote ──
+            Box(
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(CircleShape)
+                    .background(CozySage),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("🌿", fontSize = 48.sp) // 🌿
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(Modifier.height(24.dp))
 
-            // ── Informação sobre proteção de dados (transparência LGPD/GDPR) ──
+            Text(
+                text = "TSR App",
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Bold,
+                color = CozyOlive
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "memórias acolhedoras,\nseguras e suas",
+                fontSize = 15.sp,
+                color = CozyOlive.copy(alpha = 0.75f),
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp
+            )
+
+            Spacer(Modifier.height(48.dp))
+
+            // ── Conteúdo dinâmico ──
+            when (authState) {
+                is AuthState.Loading -> LoadingContent()
+                is AuthState.Unauthenticated -> GoogleSignInButton(onClick = onSignInClick)
+                is AuthState.Error -> ErrorContent(
+                    message = authState.message,
+                    onRetryClick = onSignInClick
+                )
+                is AuthState.Authenticated -> { /* navegação cuida */ }
+            }
+
+            Spacer(Modifier.height(48.dp))
+
             DataProtectionNotice()
         }
     }
 }
 
-/**
- * Indicador de carregamento com mensagem.
- * Exibido enquanto o login está sendo processado.
- */
 @Composable
 private fun LoadingContent() {
     Column(
@@ -142,73 +126,63 @@ private fun LoadingContent() {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         CircularProgressIndicator(
-            modifier = Modifier.size(48.dp),
-            color = MaterialTheme.colorScheme.primary
+            modifier = Modifier.size(40.dp),
+            color = CozySage,
+            strokeWidth = 3.dp
         )
         Text(
-            text = "Verificando credenciais...",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text = "preparando suas memórias…",
+            fontSize = 14.sp,
+            color = CozyOlive.copy(alpha = 0.7f)
         )
     }
 }
 
-/**
- * Botão "Entrar com Google" seguindo as guidelines do Google.
- *
- * DESIGN: Botão outlined com borda cinza, texto escuro,
- * seguindo o Material Design e Google Branding Guidelines.
- *
- * @param onClick Callback quando o botão é pressionado.
- */
 @Composable
 private fun GoogleSignInButton(onClick: () -> Unit) {
-    OutlinedButton(
+    Button(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp),
-        shape = RoundedCornerShape(28.dp),
-        border = BorderStroke(1.dp, Color.Gray.copy(alpha = 0.5f)),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Color.White
+            .height(60.dp),
+        shape = RoundedCornerShape(30.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = CozyAmber,
+            contentColor = Color.White
+        ),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 4.dp,
+            pressedElevation = 1.dp
         )
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            // Ícone "G" do Google (texto estilizado como placeholder)
-            // Em produção, substituir por ícone SVG oficial do Google
-            Text(
-                text = "G",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF4285F4) // Azul Google oficial
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color.White),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "G",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF4285F4)
+                )
+            }
+            Spacer(Modifier.width(14.dp))
             Text(
                 text = "Entrar com Google",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color(0xFF1F1F1F) // Texto escuro
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
 }
 
-/**
- * Conteúdo exibido quando ocorre um erro de autenticação.
- *
- * SEGURANÇA: A mensagem exibida é genérica (definida em AuthState.Error).
- * Nunca exibe stack traces, códigos internos ou informações
- * que possam ajudar um atacante.
- *
- * @param message Mensagem de erro amigável para o usuário.
- * @param onRetryClick Callback para tentar login novamente.
- */
 @Composable
 private fun ErrorContent(
     message: String,
@@ -216,63 +190,67 @@ private fun ErrorContent(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        // Mensagem de erro
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // Botão "Tentar novamente"
-        Button(
-            onClick = onRetryClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            shape = RoundedCornerShape(24.dp)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Text(
-                text = "Tentar novamente",
-                fontSize = 16.sp
+                text = message,
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(20.dp)
             )
+        }
+
+        OutlinedButton(
+            onClick = onRetryClick,
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(26.dp),
+            border = BorderStroke(1.5.dp, CozyAmber),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = CozyAmber
+            )
+        ) {
+            Text("Tentar novamente", fontSize = 16.sp, fontWeight = FontWeight.Medium)
         }
     }
 }
 
-/**
- * Aviso de proteção de dados exibido na tela de login.
- *
- * LGPD/GDPR: Transparência sobre como os dados são usados.
- * O usuário deve saber, ANTES de fazer login:
- * - Que dados são coletados
- * - Para que são usados
- * - Que ficam seguros (criptografados)
- */
 @Composable
 private fun DataProtectionNotice() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(horizontal = 16.dp)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CozyCream),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = BorderStroke(1.dp, CozyGold.copy(alpha = 0.3f))
     ) {
-        Text(
-            text = "Seus dados estão protegidos",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "Suas fotos são criptografadas e armazenadas localmente. " +
-                    "O envio para a nuvem é opcional e requer sua autorização explícita. " +
-                    "Usamos apenas seu nome e email para identificação.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center,
-            lineHeight = 18.sp
-        )
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "🌿 seus dados ficam aqui com você",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = CozyOlive
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "fotos criptografadas localmente. envio para a nuvem é opcional. usamos só seu nome e email para identificação.",
+                fontSize = 12.sp,
+                color = CozyOlive.copy(alpha = 0.65f),
+                textAlign = TextAlign.Center,
+                lineHeight = 18.sp
+            )
+        }
     }
 }

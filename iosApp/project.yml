@@ -7,8 +7,12 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    DEVELOPMENT_TEAM: ""
+    DEVELOPMENT_TEAM: "VJZP5JU3MA"
     CODE_SIGN_STYLE: Automatic
+packages:
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: "7.1.0"
 targets:
   iosApp:
     type: application
@@ -29,6 +33,9 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true
+        NSCameraUsageDescription: "O tsrapprun precisa da câmera para registrar fotos dos seus eventos e momentos."
+        NSPhotoLibraryAddUsageDescription: "O tsrapprun pode salvar fotos editadas na sua biblioteca."
+        NSPhotoLibraryUsageDescription: "O tsrapprun pode importar fotos existentes para os seus eventos."
         UILaunchScreen:
           UIColorName: ""
         UIApplicationSceneManifest:
@@ -45,6 +52,10 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         CADisableMinimumFrameDurationOnPhone: true
+        CFBundleURLTypes:
+          - CFBundleTypeRole: Editor
+            CFBundleURLSchemes:
+              - com.googleusercontent.apps.869869816608-k0lj5c7ti2r00fhqgbuqdgqc0uulhptd
     settings:
       base:
         PRODUCT_NAME: iosApp
@@ -57,6 +68,9 @@ targets:
           - $(inherited)
           - -framework
           - shared
+    dependencies:
+      - package: GoogleSignIn
+        product: GoogleSignIn
     preBuildScripts:
       - name: Build shared.framework via Gradle
         script: |

@@ -9,7 +9,6 @@
  */
 package com.tsrapprun
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -25,6 +24,9 @@ import com.tsrapprun.camera.EventCameraScreen
 import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.EventNamingScreen
 import com.tsrapprun.camera.PhotoData
+import com.tsrapprun.child.ChildProfile
+import com.tsrapprun.child.ChildRegistrationScreen
+import com.tsrapprun.child.MesversarioAnnouncementScreen
 import com.tsrapprun.memorybook.MemoryBookScreen
 import com.tsrapprun.moments.MomentEntry
 import com.tsrapprun.moments.MomentRegistrationScreen
@@ -41,6 +43,7 @@ import com.tsrapprun.platform.dayBoundsMillis
 import com.tsrapprun.platform.newUuid
 import com.tsrapprun.platform.nowMillis
 import com.tsrapprun.platform.weekBoundsMillis
+import com.tsrapprun.ui.theme.CozyTheme
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -61,7 +64,11 @@ data class AppCallbacks(
     val onUpdatePhotosEventId: suspend (List<String>, String) -> Unit = { _, _ -> },
     val onSaveMoment: suspend (MomentEntry) -> Unit = {},
     val onDeleteMoment: suspend (String) -> Unit = {},
-    val onRefreshData: suspend () -> Unit = {}
+    val onRefreshData: suspend () -> Unit = {},
+    /** Dispara uma notificação local de teste (debug). */
+    val onTestNotification: () -> Unit = {},
+    /** Salva ou atualiza o perfil da criança. */
+    val onSaveChildProfile: suspend (firstName: String, birthdateMillis: Long) -> Unit = { _, _ -> }
 )
 
 /**
@@ -72,7 +79,11 @@ data class AppUiState(
     val storageUsedMB: String = "0.0",
     val events: List<EventData> = emptyList(),
     val allPhotos: List<PhotoData> = emptyList(),
-    val moments: List<MomentEntry> = emptyList()
+    val moments: List<MomentEntry> = emptyList(),
+    /** Perfil da criança — null antes do cadastro. */
+    val childProfile: ChildProfile? = null,
+    /** Se != 0, mostra a tela de comemoração ao entrar (limpado depois). */
+    val pendingMesversarioMonth: Int = 0
 )
 
 @Composable
@@ -82,15 +93,65 @@ fun App(
     uiState: AppUiState
 ) {
     val currentAuthState by authState.collectAsState()
-    var screen by remember { mutableStateOf<NavigationScreen>(NavigationScreen.FrontPage) }
     val scope = rememberCoroutineScope()
 
-    MaterialTheme {
+    // Roteamento inicial inteligente:
+    //  - Sem perfil cadastrado → ChildRegistration (gating)
+    //  - Mesversário pendente → MesversarioAnnouncement
+    //  - Caso contrário → FrontPage
+    val initialScreen: NavigationScreen = when {
+        uiState.childProfile == null -> NavigationScreen.ChildRegistration(isEditing = false)
+        uiState.pendingMesversarioMonth > 0 -> NavigationScreen.MesversarioAnnouncement(uiState.pendingMesversarioMonth)
+        else -> NavigationScreen.FrontPage
+    }
+    var screen by remember { mutableStateOf<NavigationScreen>(initialScreen) }
+
+    // Sincroniza navegação quando o perfil é cadastrado pela primeira vez OU
+    // quando há um novo mesversário pendente (após sintetizar marcos).
+    androidx.compose.runtime.LaunchedEffect(uiState.childProfile?.id, uiState.pendingMesversarioMonth) {
+        if (screen is NavigationScreen.ChildRegistration && uiState.childProfile != null) {
+            screen = NavigationScreen.FrontPage
+        }
+        if (uiState.pendingMesversarioMonth > 0 &&
+            screen !is NavigationScreen.MesversarioAnnouncement) {
+            screen = NavigationScreen.MesversarioAnnouncement(uiState.pendingMesversarioMonth)
+        }
+    }
+
+    CozyTheme {
         when (currentAuthState) {
             is AuthState.Authenticated -> {
                 val userData = (currentAuthState as AuthState.Authenticated).userData
 
                 when (val nav = screen) {
+                    // ── Cadastro do perfil da criança ──
+                    is NavigationScreen.ChildRegistration -> {
+                        ChildRegistrationScreen(
+                            initialProfile = if (nav.isEditing) uiState.childProfile else null,
+                            onSave = { firstName, birthdateMillis ->
+                                scope.launch {
+                                    callbacks.onSaveChildProfile(firstName, birthdateMillis)
+                                    callbacks.onRefreshData()
+                                    screen = NavigationScreen.FrontPage
+                                }
+                            },
+                            onCancel = if (nav.isEditing) {
+                                { screen = NavigationScreen.Home }
+                            } else null
+                        )
+                    }
+
+                    // ── Tela de mesversário ──
+                    is NavigationScreen.MesversarioAnnouncement -> {
+                        val name = uiState.childProfile?.firstName ?: "seu pequeno"
+                        MesversarioAnnouncementScreen(
+                            childFirstName = name,
+                            monthsCompleted = nav.monthsCompleted,
+                            onContinue = { screen = NavigationScreen.FrontPage },
+                            onOpenMomentsList = { screen = NavigationScreen.MomentsList }
+                        )
+                    }
+
                     // ── Front Page (tela inicial visual) ──
                     is NavigationScreen.FrontPage -> {
                         FrontPageScreen(
@@ -121,6 +182,7 @@ fun App(
                             onOpenEvent = { event ->
                                 screen = NavigationScreen.EventGallery(event.id, event.name)
                             },
+                            onTestNotification = callbacks.onTestNotification,
                             onSignOutClick = callbacks.onSignOutClick,
                             onBack = { screen = NavigationScreen.FrontPage }
                         )
@@ -290,6 +352,9 @@ fun App(
                                     callbacks.onDeleteMoment(momentId)
                                     callbacks.onRefreshData()
                                 }
+                            },
+                            onOpenMesversario = { monthsCompleted ->
+                                screen = NavigationScreen.MesversarioAnnouncement(monthsCompleted)
                             },
                             onBack = { screen = NavigationScreen.FrontPage }
                         )

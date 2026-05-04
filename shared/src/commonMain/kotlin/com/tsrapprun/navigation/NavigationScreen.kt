@@ -57,4 +57,10 @@ sealed class NavigationScreen {
         val initialIndex: Int,
         val eventId: String? = null
     ) : NavigationScreen()
+
+    /** Cadastro inicial / edição de perfil da criança. */
+    data class ChildRegistration(val isEditing: Boolean = false) : NavigationScreen()
+
+    /** Tela de comemoração de mesversário. */
+    data class MesversarioAnnouncement(val monthsCompleted: Int) : NavigationScreen()
 }

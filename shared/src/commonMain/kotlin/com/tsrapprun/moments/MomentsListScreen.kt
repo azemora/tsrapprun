@@ -1,15 +1,20 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
- * ║  MomentsListScreen.kt - Aba "Registros"                     ║
- * ║                                                             ║
- * ║  Exibe todos os registros de momentos do usuário em         ║
- * ║  ordem cronológica inversa (mais recente primeiro).          ║
- * ║  Cards com tipo (diário/semanal), data e texto.             ║
+ * ║  MomentsListScreen.kt - Aba "Registros" (paleta cozy)        ║
+ * ║                                                              ║
+ * ║  Exibe 4 tipos de entries:                                   ║
+ * ║   • DAILY (manual diário)                                    ║
+ * ║   • WEEKLY (manual semanal)                                  ║
+ * ║   • WEEK_OF_LIFE (auto: semana N — destaque sage)            ║
+ * ║   • MESVERSARIO (auto: mesversário — destaque dourado)      ║
+ * ║                                                              ║
+ * ║  Auto-entries não podem ser deletadas pelo usuário.          ║
  * ╚══════════════════════════════════════════════════════════════╝
  */
 package com.tsrapprun.moments
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,12 +25,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -33,8 +39,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,12 +50,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tsrapprun.ui.theme.CozyAmber
+import com.tsrapprun.ui.theme.CozyCream
+import com.tsrapprun.ui.theme.CozyGold
+import com.tsrapprun.ui.theme.CozyInk
+import com.tsrapprun.ui.theme.CozyOlive
+import com.tsrapprun.ui.theme.CozySage
+import com.tsrapprun.ui.theme.CozySageMist
+import com.tsrapprun.ui.theme.CozyTan
 
 @Composable
 fun MomentsListScreen(
@@ -59,6 +72,7 @@ fun MomentsListScreen(
     onAddDaily: () -> Unit,
     onAddWeekly: () -> Unit,
     onDeleteMoment: (String) -> Unit,
+    onOpenMesversario: ((Int) -> Unit)? = null,
     onBack: () -> Unit
 ) {
     val sortedMoments = remember(moments) {
@@ -70,57 +84,63 @@ fun MomentsListScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+        color = CozySageMist
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .windowInsetsPadding(WindowInsets.safeDrawing)
             ) {
                 // ── Header ──
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 12.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onBack) {
-                        Text("\u2190 Voltar", style = MaterialTheme.typography.titleMedium)
+                    Surface(
+                        modifier = Modifier.size(40.dp).clickable(onClick = onBack),
+                        shape = CircleShape,
+                        color = CozyCream,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CozyTan)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("←", fontSize = 18.sp, color = CozyOlive)
+                        }
                     }
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(Modifier.weight(1f))
                     Text(
-                        "Registros",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                        "registros",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = CozyOlive
                     )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Spacer(modifier = Modifier.width(80.dp))
+                    Spacer(Modifier.weight(1f))
+                    Spacer(Modifier.size(40.dp))
                 }
 
                 if (sortedMoments.isEmpty()) {
-                    // ── Estado vazio ──
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("📝", fontSize = 56.sp)
+                            Spacer(Modifier.height(16.dp))
                             Text(
-                                text = "\uD83D\uDCDD",
-                                fontSize = 48.sp
+                                "nenhum registro ainda",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = CozyOlive
                             )
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(Modifier.height(6.dp))
                             Text(
-                                text = "Nenhum registro ainda",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Toque no + para registrar\no que est\u00e1 acontecendo!",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                textAlign = TextAlign.Center
+                                "toque no + para registrar\no que está acontecendo!",
+                                fontSize = 13.sp,
+                                color = CozyOlive.copy(alpha = 0.65f),
+                                textAlign = TextAlign.Center,
+                                lineHeight = 19.sp
                             )
                         }
                     }
@@ -132,87 +152,84 @@ fun MomentsListScreen(
                         items(sortedMoments, key = { it.id }) { moment ->
                             MomentCard(
                                 moment = moment,
-                                onDelete = { showDeleteDialog = moment.id }
+                                onDelete = if (moment.type == MomentType.DAILY || moment.type == MomentType.WEEKLY) {
+                                    { showDeleteDialog = moment.id }
+                                } else null,
+                                onOpenMesversario = onOpenMesversario
                             )
                         }
-                        item { Spacer(modifier = Modifier.height(80.dp)) }
+                        item { Spacer(Modifier.height(80.dp)) }
                     }
                 }
             }
 
-            // ── FAB: adicionar registro ──
+            // ── FAB ──
             FloatingActionButton(
                 onClick = { showAddOptions = true },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(24.dp),
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = CozyAmber,
+                contentColor = Color.White,
+                shape = CircleShape
             ) {
                 Text("+", fontSize = 24.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
 
-    // ── Diálogo: escolher tipo de registro ──
     if (showAddOptions) {
         AlertDialog(
             onDismissRequest = { showAddOptions = false },
-            title = { Text("Novo Registro") },
+            title = { Text("novo registro", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
-                        onClick = {
-                            showAddOptions = false
-                            onAddDaily()
-                        },
+                        onClick = { showAddOptions = false; onAddDaily() },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = CozySage)
                     ) {
-                        Text("\uD83D\uDDD3\uFE0F  O que aconteceu hoje?")
+                        Text("🗓️  o que aconteceu hoje?")
                     }
                     Button(
-                        onClick = {
-                            showAddOptions = false
-                            onAddWeekly()
-                        },
+                        onClick = { showAddOptions = false; onAddWeekly() },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = CozyAmber)
                     ) {
-                        Text("\uD83D\uDCDD  O que aconteceu essa semana?")
+                        Text("📝  o que aconteceu essa semana?")
                     }
                 }
             },
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showAddOptions = false }) {
-                    Text("Cancelar")
+                    Text("cancelar", color = CozyOlive)
                 }
             }
         )
     }
 
-    // ── Diálogo: confirmar exclusão ──
     if (showDeleteDialog != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
-            title = { Text("Excluir registro?") },
-            text = { Text("Esta a\u00e7\u00e3o n\u00e3o pode ser desfeita.") },
+            title = { Text("excluir registro?") },
+            text = { Text("essa ação não pode ser desfeita.") },
             confirmButton = {
                 Button(
                     onClick = {
                         showDeleteDialog?.let { onDeleteMoment(it) }
                         showDeleteDialog = null
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB85450))
                 ) {
-                    Text("Excluir")
+                    Text("excluir")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = null }) {
-                    Text("Cancelar")
+                    Text("cancelar", color = CozyOlive)
                 }
             }
         )
@@ -220,81 +237,204 @@ fun MomentsListScreen(
 }
 
 // ═══════════════════════════════════════════════════
-// CARD DE MOMENTO
+// CARDS POR TIPO
 // ═══════════════════════════════════════════════════
 
 @Composable
 private fun MomentCard(
     moment: MomentEntry,
-    onDelete: () -> Unit
+    onDelete: (() -> Unit)? = null,
+    onOpenMesversario: ((Int) -> Unit)? = null
 ) {
-    val typeLabel = when (moment.type) {
-        MomentType.DAILY -> "Di\u00e1rio"
-        MomentType.WEEKLY -> "Semanal"
+    when (moment.type) {
+        MomentType.MESVERSARIO -> MesversarioCard(moment, onOpenMesversario)
+        MomentType.WEEK_OF_LIFE -> WeekOfLifeCard(moment)
+        MomentType.DAILY -> ManualCard(
+            moment = moment,
+            badgeLabel = "diário",
+            badgeEmoji = "🗓️",
+            badgeColor = CozySage,
+            onDelete = onDelete
+        )
+        MomentType.WEEKLY -> ManualCard(
+            moment = moment,
+            badgeLabel = "semanal",
+            badgeEmoji = "📝",
+            badgeColor = CozyAmber,
+            onDelete = onDelete
+        )
     }
-    val typeEmoji = when (moment.type) {
-        MomentType.DAILY -> "\uD83D\uDDD3\uFE0F"
-        MomentType.WEEKLY -> "\uD83D\uDCDD"
-    }
-    val typeColor = when (moment.type) {
-        MomentType.DAILY -> Color(0xFF4CAF50)
-        MomentType.WEEKLY -> Color(0xFF2196F3)
-    }
+}
 
+@Composable
+private fun MesversarioCard(moment: MomentEntry, onOpenMesversario: ((Int) -> Unit)?) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = onOpenMesversario != null) {
+                onOpenMesversario?.invoke(moment.milestoneNumber)
+            },
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.linearGradient(colors = listOf(CozyGold, CozyAmber))
+                )
+                .padding(20.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.22f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("🎉", fontSize = 28.sp)
+                }
+                Spacer(Modifier.width(14.dp))
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        "mesversário",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White.copy(alpha = 0.85f)
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        moment.text,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "toque para ver a comemoração",
+                        fontSize = 11.sp,
+                        color = Color.White.copy(alpha = 0.85f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeekOfLifeCard(moment: MomentEntry) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = CozySage.copy(alpha = 0.18f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, CozySage.copy(alpha = 0.4f))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(CozySage),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "${moment.milestoneNumber}",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "marco semanal",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = CozyOlive.copy(alpha = 0.7f)
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    moment.text,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = CozyOlive,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ManualCard(
+    moment: MomentEntry,
+    badgeLabel: String,
+    badgeEmoji: String,
+    badgeColor: Color,
+    onDelete: (() -> Unit)?
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // ── Header do card: tipo + data + delete ──
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Badge de tipo
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(typeColor.copy(alpha = 0.1f))
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(badgeColor.copy(alpha = 0.15f))
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "$typeEmoji $typeLabel",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = typeColor
+                        text = "$badgeEmoji $badgeLabel",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = badgeColor
                     )
                 }
-
-                Spacer(modifier = Modifier.weight(1f))
-
+                Spacer(Modifier.weight(1f))
                 Text(
                     text = formatMomentDate(moment.createdAt),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    fontSize = 11.sp,
+                    color = CozyOlive.copy(alpha = 0.55f)
                 )
-
-                // Botão deletar
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Text(
-                        text = "\u2715",  // ✕
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                    )
+                if (onDelete != null) {
+                    Spacer(Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = onDelete),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "✕",
+                            fontSize = 13.sp,
+                            color = CozyOlive.copy(alpha = 0.4f)
+                        )
+                    }
                 }
             }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // ── Texto do momento ──
+            Spacer(Modifier.height(10.dp))
             Text(
                 text = moment.text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 14.sp,
+                color = CozyInk,
+                lineHeight = 20.sp,
                 maxLines = 8,
                 overflow = TextOverflow.Ellipsis
             )

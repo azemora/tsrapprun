@@ -32,29 +32,29 @@ import kotlin.math.abs
 // CORES DO SCRAPBOOK
 // ═══════════════════════════════════════════════════
 
-/** Creme claro — fundo de página. */
-val PageCream = Color(0xFFF5F0E1)
+/** Creme claro — fundo de página (tom cozy). */
+val PageCream = Color(0xFFF5EFE0)
 
-/** Marrom couro — capa. */
-val CoverBrown = Color(0xFF6B4226)
+/** Sage profundo — capa do livro (substitui marrom couro). */
+val CoverBrown = Color(0xFF6B8654)
 
-/** Marrom escuro — contracapa. */
-val BackCoverBrown = Color(0xFF4A2E18)
+/** Sage muito escuro — contracapa. */
+val BackCoverBrown = Color(0xFF54683E)
 
 /** Fita adesiva amarela translúcida. */
-val TapeYellow = Color(0xAAF5E6A8)
+val TapeYellow = Color(0xAAF1DCBE)
 
-/** Fita washi rosa suave. */
-val WashiPink = Color(0x55E8A0BF)
+/** Fita washi rosa pêssego suave (cozy). */
+val WashiPink = Color(0x55E8B89A)
 
-/** Fita washi verde menta. */
-val WashiMint = Color(0x55A8D8B9)
+/** Fita washi verde sage. */
+val WashiMint = Color(0x55A8C09A)
 
-/** Cor do texto "escrito à mão". */
-val InkBrown = Color(0xFF3E2723)
+/** Cor do texto "escrito à mão" — marrom tinta envelhecido. */
+val InkBrown = Color(0xFF3E2E1E)
 
-/** Dourado para detalhes na capa. */
-val GoldAccent = Color(0xFFD4A847)
+/** Âmbar dourado — detalhes da capa (alinhado com paleta cozy). */
+val GoldAccent = Color(0xFFD9B25C)
 
 // ═══════════════════════════════════════════════════
 // ROTAÇÃO DETERMINÍSTICA

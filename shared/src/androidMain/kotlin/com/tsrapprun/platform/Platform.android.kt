@@ -30,6 +30,24 @@ actual fun weekBoundsMillis(): Pair<Long, Long> {
     return start to cal.timeInMillis
 }
 
+actual fun epochMillisFromComponents(
+    year: Int,
+    monthIndex: Int,
+    day: Int,
+    hour: Int,
+    minute: Int
+): Long {
+    val cal = Calendar.getInstance().apply {
+        clear()
+        set(Calendar.YEAR, year)
+        set(Calendar.MONTH, monthIndex)
+        set(Calendar.DAY_OF_MONTH, day)
+        set(Calendar.HOUR_OF_DAY, hour)
+        set(Calendar.MINUTE, minute)
+    }
+    return cal.timeInMillis
+}
+
 actual fun dateComponentsOf(epochMillis: Long): DateTimeComponents {
     val cal = Calendar.getInstance().apply { timeInMillis = epochMillis }
     return DateTimeComponents(

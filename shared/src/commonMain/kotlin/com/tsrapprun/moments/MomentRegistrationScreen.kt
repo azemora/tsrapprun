@@ -44,14 +44,18 @@ fun MomentRegistrationScreen(
 ) {
     var text by remember { mutableStateOf("") }
 
+    // Esta tela só é mostrada para entries manuais (DAILY/WEEKLY).
+    // WEEK_OF_LIFE e MESVERSARIO são gerados pelo MilestoneSynthesizer.
     val title = when (type) {
         MomentType.DAILY -> "O que aconteceu hoje?"
         MomentType.WEEKLY -> "O que aconteceu essa semana?"
+        else -> "Novo registro"
     }
 
     val hint = when (type) {
         MomentType.DAILY -> "Escreva sobre o seu dia..."
         MomentType.WEEKLY -> "Resuma sua semana..."
+        else -> "Conte o que aconteceu..."
     }
 
     Surface(

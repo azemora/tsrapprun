@@ -16,6 +16,7 @@ package com.tsrapprun.storage
 
 import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.PhotoData
+import com.tsrapprun.child.ChildProfile
 import com.tsrapprun.moments.MomentEntry
 
 /**
@@ -88,4 +89,15 @@ expect class LocalPhotoStorage {
 
     /** Deleta um momento pelo ID. */
     suspend fun deleteMoment(momentId: String): Boolean
+
+    // ── Operações de Perfil da Criança ──
+
+    /**
+     * Salva ou atualiza o perfil da criança.
+     * O caller deve ter sanitizado os dados via ChildProfileSanitizer.
+     */
+    suspend fun saveChildProfile(profile: ChildProfile)
+
+    /** Retorna o perfil cadastrado, ou null se ainda não há. */
+    suspend fun getChildProfile(): ChildProfile?
 }

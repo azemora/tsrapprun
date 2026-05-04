@@ -20,6 +20,7 @@ import androidx.security.crypto.EncryptedFile
 import androidx.security.crypto.MasterKey
 import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.PhotoData
+import com.tsrapprun.child.ChildProfile
 import com.tsrapprun.gallery.GalleryMediaSaver
 import com.tsrapprun.moments.MomentEntry
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +40,7 @@ actual class LocalPhotoStorage(private val context: Context) {
         private const val PHOTO_INDEX_FILE = "photo_index.json.enc"
         private const val EVENT_INDEX_FILE = "event_index.json.enc"
         private const val MOMENT_INDEX_FILE = "moment_index.json.enc"
+        private const val CHILD_PROFILE_FILE = "child_profile.json.enc"
     }
 
     private val masterKey: MasterKey = MasterKey.Builder(context)
@@ -52,6 +54,7 @@ actual class LocalPhotoStorage(private val context: Context) {
     private val photoIndexMutex = Mutex()
     private val eventIndexMutex = Mutex()
     private val momentIndexMutex = Mutex()
+    private val childProfileMutex = Mutex()
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -346,6 +349,43 @@ actual class LocalPhotoStorage(private val context: Context) {
             } catch (e: Exception) {
                 Log.e(TAG, "Erro ao deletar momento", e)
                 false
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════
+    // PERFIL DA CRIANÇA (criptografado)
+    // ══════════════════════════════════════════════
+
+    actual suspend fun saveChildProfile(profile: ChildProfile) {
+        withContext(Dispatchers.IO) {
+            childProfileMutex.withLock {
+                val jsonString = json.encodeToString(profile)
+                val file = File(context.filesDir, CHILD_PROFILE_FILE)
+                file.delete()
+                val encryptedFile = EncryptedFile.Builder(
+                    context, file, masterKey,
+                    EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
+                ).build()
+                encryptedFile.openFileOutput().use { it.write(jsonString.toByteArray()); it.flush() }
+            }
+        }
+    }
+
+    actual suspend fun getChildProfile(): ChildProfile? {
+        return withContext(Dispatchers.IO) {
+            val file = File(context.filesDir, CHILD_PROFILE_FILE)
+            if (!file.exists()) return@withContext null
+            try {
+                val encryptedFile = EncryptedFile.Builder(
+                    context, file, masterKey,
+                    EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
+                ).build()
+                val jsonString = encryptedFile.openFileInput().use { it.readBytes().decodeToString() }
+                json.decodeFromString<ChildProfile>(jsonString)
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro ao ler perfil da criança", e)
+                null
             }
         }
     }
