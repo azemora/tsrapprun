@@ -248,7 +248,8 @@ private fun MomentCard(
 ) {
     when (moment.type) {
         MomentType.MESVERSARIO -> MesversarioCard(moment, onOpenMesversario)
-        MomentType.WEEK_OF_LIFE -> WeekOfLifeCard(moment)
+        MomentType.PREGNANCY_WEEK -> PregnancyWeekCard(moment)
+        MomentType.DAY_OF_LIFE -> DayOfLifeCard(moment)
         MomentType.DAILY -> ManualCard(
             moment = moment,
             badgeLabel = "diário",
@@ -326,11 +327,12 @@ private fun MesversarioCard(moment: MomentEntry, onOpenMesversario: ((Int) -> Un
 }
 
 @Composable
-private fun WeekOfLifeCard(moment: MomentEntry) {
+private fun PregnancyWeekCard(moment: MomentEntry) {
+    // Tom suave de expectativa — sage claro com borda
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = CozySage.copy(alpha = 0.18f)),
+        colors = CardDefaults.cardColors(containerColor = CozySage.copy(alpha = 0.15f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, CozySage.copy(alpha = 0.4f))
     ) {
@@ -345,17 +347,12 @@ private fun WeekOfLifeCard(moment: MomentEntry) {
                     .background(CozySage),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "${moment.milestoneNumber}",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                Text("🤰", fontSize = 20.sp)
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "marco semanal",
+                    "gestação",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = CozyOlive.copy(alpha = 0.7f)
@@ -366,6 +363,56 @@ private fun WeekOfLifeCard(moment: MomentEntry) {
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = CozyOlive,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayOfLifeCard(moment: MomentEntry) {
+    // Card menorzinho — diário cotidiano
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CozyCream),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, CozyTan.copy(alpha = 0.6f))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(CozyAmber),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "${moment.milestoneNumber}",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "dia de vida",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = CozyOlive.copy(alpha = 0.65f)
+                )
+                Spacer(Modifier.height(1.dp))
+                Text(
+                    moment.text,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = CozyInk,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )

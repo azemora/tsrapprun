@@ -24,9 +24,11 @@ import com.tsrapprun.camera.EventCameraScreen
 import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.EventNamingScreen
 import com.tsrapprun.camera.PhotoData
+import com.tsrapprun.calendar.CalendarScreen
 import com.tsrapprun.child.ChildProfile
 import com.tsrapprun.child.ChildRegistrationScreen
 import com.tsrapprun.child.MesversarioAnnouncementScreen
+import com.tsrapprun.stories.StoriesScreen
 import com.tsrapprun.memorybook.MemoryBookScreen
 import com.tsrapprun.moments.MomentEntry
 import com.tsrapprun.moments.MomentRegistrationScreen
@@ -68,7 +70,7 @@ data class AppCallbacks(
     /** Dispara uma notificação local de teste (debug). */
     val onTestNotification: () -> Unit = {},
     /** Salva ou atualiza o perfil da criança. */
-    val onSaveChildProfile: suspend (firstName: String, birthdateMillis: Long) -> Unit = { _, _ -> }
+    val onSaveChildProfile: suspend (firstName: String, birthdateMillis: Long, isPregnancy: Boolean) -> Unit = { _, _, _ -> }
 )
 
 /**
@@ -128,9 +130,9 @@ fun App(
                     is NavigationScreen.ChildRegistration -> {
                         ChildRegistrationScreen(
                             initialProfile = if (nav.isEditing) uiState.childProfile else null,
-                            onSave = { firstName, birthdateMillis ->
+                            onSave = { firstName, birthdateMillis, isPregnancy ->
                                 scope.launch {
-                                    callbacks.onSaveChildProfile(firstName, birthdateMillis)
+                                    callbacks.onSaveChildProfile(firstName, birthdateMillis, isPregnancy)
                                     callbacks.onRefreshData()
                                     screen = NavigationScreen.FrontPage
                                 }
@@ -155,6 +157,7 @@ fun App(
                     // ── Front Page (tela inicial visual) ──
                     is NavigationScreen.FrontPage -> {
                         FrontPageScreen(
+                            childProfile = uiState.childProfile,
                             events = uiState.events,
                             allPhotos = uiState.allPhotos,
                             onLoadThumbnail = { callbacks.onLoadPhoto(it) },
@@ -165,8 +168,20 @@ fun App(
                             onCreate = { screen = NavigationScreen.EventRegistration },
                             onOpenSettings = { screen = NavigationScreen.Home },
                             onOpenMemoryBook = { screen = NavigationScreen.MemoryBook },
-                            onOpenMoments = { screen = NavigationScreen.MomentsList }
+                            onOpenMoments = { screen = NavigationScreen.MomentsList },
+                            onOpenStories = { screen = NavigationScreen.Stories },
+                            onOpenCalendar = { screen = NavigationScreen.Calendar }
                         )
+                    }
+
+                    // ── Histórias ──
+                    is NavigationScreen.Stories -> {
+                        StoriesScreen(onBack = { screen = NavigationScreen.FrontPage })
+                    }
+
+                    // ── Calendário ──
+                    is NavigationScreen.Calendar -> {
+                        CalendarScreen(onBack = { screen = NavigationScreen.FrontPage })
                     }
 
                     // ── Home (gerenciamento: perfil, usage, eventos) ──

@@ -42,10 +42,11 @@ fun MainViewController(
                 pendingMesversario = result.latestNewMonth
             }
             // Atualiza counters do perfil para evitar re-celebrar o mesmo mês
-            if (result.hasNewMesversario || result.newWeekEntries > 0) {
+            if (result.hasNewMesversario || result.newDayEntries > 0 || result.newPregnancyEntries > 0) {
                 val updated = profile.copy(
                     lastSeenMonthCount = maxOf(profile.lastSeenMonthCount, result.latestNewMonth),
-                    lastSeenWeekCount = maxOf(profile.lastSeenWeekCount, result.currentAge.weeks)
+                    lastSeenDayCount = maxOf(profile.lastSeenDayCount, result.currentAge.daysOfLife),
+                    lastSeenWeekCount = maxOf(profile.lastSeenWeekCount, result.currentAge.pregnancyWeeksRemaining)
                 )
                 storage.saveChildProfile(updated)
                 childProfile = updated
@@ -93,17 +94,25 @@ fun MainViewController(
             onDeleteMoment = { momentId -> storage.deleteMoment(momentId) },
             onRefreshData = { refreshData() },
             onTestNotification = { IosNotificationBridge.onTestNotification() },
-            onSaveChildProfile = { firstName, birthdateMillis ->
+            onSaveChildProfile = { firstName, birthdateMillis, isPregnancy ->
                 // Defesa em profundidade: re-sanitiza no caller também.
-                when (val result = ChildProfileSanitizer.sanitize(firstName, birthdateMillis, nowMillis())) {
+                when (val result = ChildProfileSanitizer.sanitize(
+                    rawName = firstName,
+                    birthdateMillis = birthdateMillis,
+                    isPregnancy = isPregnancy,
+                    nowMillis = nowMillis()
+                )) {
                     is ChildProfileSanitizer.Result.Valid -> {
                         val existing = storage.getChildProfile()
                         val toSave = ChildProfile(
                             id = existing?.id ?: newUuid(),
                             firstName = result.firstName,
                             birthdateMillis = result.birthdateMillis,
+                            isPregnancy = result.isPregnancy,
+                            createdAtMillis = existing?.createdAtMillis ?: nowMillis(),
                             lastSeenMonthCount = existing?.lastSeenMonthCount ?: 0,
-                            lastSeenWeekCount = existing?.lastSeenWeekCount ?: 0
+                            lastSeenWeekCount = existing?.lastSeenWeekCount ?: 0,
+                            lastSeenDayCount = existing?.lastSeenDayCount ?: 0
                         )
                         storage.saveChildProfile(toSave)
                     }

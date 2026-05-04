@@ -24,6 +24,10 @@ object SimulationMode {
     val weekMillis: Long
         get() = if (FAST_FORWARD) 60L * 60L * 1000L else 7L * 24 * 60 * 60 * 1000
 
+    /** Duração de "um dia" em ms (~8.57min no fast / 24h real). */
+    val dayMillis: Long
+        get() = weekMillis / 7
+
     /** Duração de "um mês" em ms (4h no fast / ~30.44d real). */
     val monthMillis: Long
         get() = if (FAST_FORWARD) 4L * 60L * 60L * 1000L else (30.44 * 24 * 60 * 60 * 1000).toLong()

@@ -151,8 +151,13 @@ class MainActivity : ComponentActivity() {
                         photoStorage.deleteMoment(momentId)
                     },
                     onRefreshData = { refreshData() },
-                    onSaveChildProfile = { firstName, birthdateMillis ->
-                        when (val result = ChildProfileSanitizer.sanitize(firstName, birthdateMillis, nowMillis())) {
+                    onSaveChildProfile = { firstName, birthdateMillis, isPregnancy ->
+                        when (val result = ChildProfileSanitizer.sanitize(
+                            rawName = firstName,
+                            birthdateMillis = birthdateMillis,
+                            isPregnancy = isPregnancy,
+                            nowMillis = nowMillis()
+                        )) {
                             is ChildProfileSanitizer.Result.Valid -> {
                                 val existing = photoStorage.getChildProfile()
                                 photoStorage.saveChildProfile(
@@ -160,8 +165,11 @@ class MainActivity : ComponentActivity() {
                                         id = existing?.id ?: newUuid(),
                                         firstName = result.firstName,
                                         birthdateMillis = result.birthdateMillis,
+                                        isPregnancy = result.isPregnancy,
+                                        createdAtMillis = existing?.createdAtMillis ?: nowMillis(),
                                         lastSeenMonthCount = existing?.lastSeenMonthCount ?: 0,
-                                        lastSeenWeekCount = existing?.lastSeenWeekCount ?: 0
+                                        lastSeenWeekCount = existing?.lastSeenWeekCount ?: 0,
+                                        lastSeenDayCount = existing?.lastSeenDayCount ?: 0
                                     )
                                 )
                             }
@@ -279,10 +287,11 @@ class MainActivity : ComponentActivity() {
             if (result.hasNewMesversario && result.latestNewMonth > profile.lastSeenMonthCount) {
                 pendingMesversario = result.latestNewMonth
             }
-            if (result.hasNewMesversario || result.newWeekEntries > 0) {
+            if (result.hasNewMesversario || result.newDayEntries > 0 || result.newPregnancyEntries > 0) {
                 val updated = profile.copy(
                     lastSeenMonthCount = maxOf(profile.lastSeenMonthCount, result.latestNewMonth),
-                    lastSeenWeekCount = maxOf(profile.lastSeenWeekCount, result.currentAge.weeks)
+                    lastSeenDayCount = maxOf(profile.lastSeenDayCount, result.currentAge.daysOfLife),
+                    lastSeenWeekCount = maxOf(profile.lastSeenWeekCount, result.currentAge.pregnancyWeeksRemaining)
                 )
                 photoStorage.saveChildProfile(updated)
                 childProfile = updated

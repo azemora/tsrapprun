@@ -18,20 +18,32 @@ object ChildProfileSanitizer {
     private const val MIN_NAME_LEN = 1
     private const val MAX_NAME_LEN = 50
 
-    /** ~18 anos em milissegundos (limite superior razoável). */
+    /** ~18 anos em ms (limite superior razoável para já nascido). */
     private const val MAX_AGE_MS = 18L * 365L * 24L * 60L * 60L * 1000L
 
-    /** Resultado de validação. */
+    /** ~10 meses em ms (limite superior para DPP no futuro). */
+    private const val MAX_PREGNANCY_FUTURE_MS = 10L * 31L * 24L * 60L * 60L * 1000L
+
     sealed class Result {
-        data class Valid(val firstName: String, val birthdateMillis: Long) : Result()
+        data class Valid(
+            val firstName: String,
+            val birthdateMillis: Long,
+            val isPregnancy: Boolean
+        ) : Result()
         data class Invalid(val message: String) : Result()
     }
 
     /**
-     * Sanitiza e valida o input. Retorna [Result.Valid] com dados limpos
-     * ou [Result.Invalid] com mensagem amigável (sem detalhes técnicos).
+     * Sanitiza e valida o input. Considera o modo (já nasceu vs DPP) ao
+     * validar a data — DPP precisa estar no futuro próximo, nascimento
+     * precisa estar no passado dentro de 18 anos.
      */
-    fun sanitize(rawName: String, birthdateMillis: Long, nowMillis: Long): Result {
+    fun sanitize(
+        rawName: String,
+        birthdateMillis: Long,
+        isPregnancy: Boolean,
+        nowMillis: Long
+    ): Result {
         val cleaned = cleanName(rawName)
         if (cleaned.length < MIN_NAME_LEN) {
             return Result.Invalid("Por favor, digite o primeiro nome.")
@@ -40,48 +52,43 @@ object ChildProfileSanitizer {
             return Result.Invalid("Nome muito longo (máx. $MAX_NAME_LEN caracteres).")
         }
 
-        // Data não pode ser no futuro
-        if (birthdateMillis > nowMillis) {
-            return Result.Invalid("A data de nascimento não pode estar no futuro.")
-        }
-        // Data não pode ser absurdamente antiga (proteção contra valores grosseiramente errados)
-        val ageMs = nowMillis - birthdateMillis
-        if (ageMs > MAX_AGE_MS) {
-            return Result.Invalid("Data de nascimento muito antiga.")
+        if (isPregnancy) {
+            // DPP precisa estar no futuro
+            if (birthdateMillis <= nowMillis) {
+                return Result.Invalid("A data prevista de parto deve ser no futuro.")
+            }
+            if ((birthdateMillis - nowMillis) > MAX_PREGNANCY_FUTURE_MS) {
+                return Result.Invalid("Data prevista muito distante (limite ~10 meses).")
+            }
+        } else {
+            // Já nasceu: data no passado, dentro de 18 anos
+            if (birthdateMillis > nowMillis) {
+                return Result.Invalid("A data de nascimento não pode estar no futuro.")
+            }
+            if ((nowMillis - birthdateMillis) > MAX_AGE_MS) {
+                return Result.Invalid("Data de nascimento muito antiga.")
+            }
         }
 
-        return Result.Valid(cleaned, birthdateMillis)
+        return Result.Valid(cleaned, birthdateMillis, isPregnancy)
     }
 
     /**
      * Limpa o nome:
      *  • Trim de whitespace nas pontas
      *  • Remove chars de controle (ASCII 0x00-0x1F e 0x7F)
-     *  • Remove sequências tipo HTML/script (`<…>` e `${…}`)
+     *  • Remove sequências tipo HTML/script (`<…>`, `${…}`, `{{…}}`, `[INST]`)
      *  • Colapsa múltiplos espaços em um só
-     *
-     *  Mantém acentos, hífens, apóstrofos (ex: "Maria-José", "D'angelo").
      */
     fun cleanName(raw: String): String {
         if (raw.isEmpty()) return ""
-
-        // 1. Remove chars de controle
         val noControl = raw.filter { it.code !in 0..31 && it.code != 0x7F }
-
-        // 2. Remove qualquer coisa entre `<` e `>` (tags HTML/script)
         val noTags = TAG_REGEX.replace(noControl, "")
-
-        // 3. Remove sequências de template / placeholders comuns em prompt injection
-        //    (ex: ${IGNORE_PREVIOUS}, {{system_prompt}}, [INST]...)
         val noTemplates = noTags
             .replace(DOLLAR_BRACE_REGEX, "")
             .replace(DOUBLE_BRACE_REGEX, "")
             .replace(BRACKET_INST_REGEX, "")
-
-        // 4. Colapsa espaços
-        val collapsed = noTemplates.replace(MULTIWS_REGEX, " ").trim()
-
-        return collapsed
+        return noTemplates.replace(MULTIWS_REGEX, " ").trim()
     }
 
     private val TAG_REGEX = Regex("<[^>]*>")

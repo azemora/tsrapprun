@@ -1,10 +1,16 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
- * ║  MilestoneSynthesizer.kt — Sintetiza marcos automaticamente  ║
+ * ║  MilestoneSynthesizer.kt — 3 fases de marcos                 ║
  * ║                                                              ║
- * ║  Em vez de depender de cron/background work para criar       ║
- * ║  entradas de marcos (mesversário e semanas), as geramos      ║
- * ║  on-demand quando o app abre. Idempotente.                   ║
+ * ║   1. Gestação (DPP no futuro)                                ║
+ * ║      → countdown semanal: "faltam N semanas pra nascer"      ║
+ * ║   2. Recém-nascido (0 a 1 mês)                               ║
+ * ║      → contagem diária: "dia N de vida"                      ║
+ * ║   3. Bebê (1 a 12 meses)                                     ║
+ * ║      → mesversário mensal                                    ║
+ * ║                                                              ║
+ * ║  Idempotente: usa entries existentes pra decidir o que falta.║
+ * ║  Capped contra loops (40 semanas, 30 dias, 12 meses).        ║
  * ╚══════════════════════════════════════════════════════════════╝
  */
 package com.tsrapprun.child
@@ -17,28 +23,25 @@ import com.tsrapprun.storage.LocalPhotoStorage
 
 object MilestoneSynthesizer {
 
-    /** Sanity cap para evitar loop em caso de timestamp absurdo. */
-    private const val MAX_WEEKS_HARD_CAP = 60
-    /** Marcos semanais só até 1 mês de vida (depois conta em meses). */
-    private const val MAX_WEEKS_BEFORE_MONTH = 4
-    /** Mesversários só até completar 1 ano. */
+    /** Limite máximo de semanas de gestação rastreadas (humano: ~40). */
+    private const val MAX_PREGNANCY_WEEKS = 40
+    /** Dias rastreados após nascimento (até primeiro mesversário). */
+    private const val MAX_DAYS = 30
+    /** Mesversários até 1 ano. */
     private const val MAX_MONTHS = 12
 
-    /**
-     * Cria entries para todas as semanas/mesversários que já passaram desde
-     * o nascimento e que ainda não têm entry registrada.
-     *
-     * Retorna o número total de entries criadas (útil pra detectar
-     * "tem mesversário novo, mostrar tela de anúncio").
-     */
     suspend fun synthesizeFor(
         profile: ChildProfile,
         storage: LocalPhotoStorage
     ): SynthesisResult {
-        val age = AgeCalculator.calculateAge(profile.birthdateMillis, nowMillis())
+        val now = nowMillis()
         val existing = storage.listMoments()
-        val existingWeeks = existing
-            .filter { it.type == MomentType.WEEK_OF_LIFE }
+        val existingPregnancyWeeks = existing
+            .filter { it.type == MomentType.PREGNANCY_WEEK }
+            .map { it.milestoneNumber }
+            .toSet()
+        val existingDays = existing
+            .filter { it.type == MomentType.DAY_OF_LIFE }
             .map { it.milestoneNumber }
             .toSet()
         val existingMonths = existing
@@ -46,65 +49,111 @@ object MilestoneSynthesizer {
             .map { it.milestoneNumber }
             .toSet()
 
-        var newWeekEntries = 0
+        var newPregnancyEntries = 0
+        var newDayEntries = 0
         var newMonthEntries = 0
         var latestNewMonth = 0
 
-        // Semanas — só até a criança completar 1 mês.
-        // Após 1 mesversário, marcos passam a ser mensais.
-        val firstMonthEndMs = profile.birthdateMillis + SimulationMode.monthMillis
-        val weeksCap = minOf(age.weeks, MAX_WEEKS_HARD_CAP, MAX_WEEKS_BEFORE_MONTH)
-        for (week in 1..weeksCap) {
-            if (week in existingWeeks) continue
-            val periodStart = profile.birthdateMillis + (week - 1) * SimulationMode.weekMillis
-            val periodEnd = profile.birthdateMillis + week * SimulationMode.weekMillis
-            // Defesa adicional: se a semana terminar depois de 1 mês, para.
-            if (periodEnd > firstMonthEndMs) break
-            storage.saveMoment(
-                MomentEntry(
-                    id = newUuid(),
-                    text = "Semana $week de ${profile.firstName}",
-                    type = MomentType.WEEK_OF_LIFE,
-                    createdAt = nowMillis(),
-                    periodStart = periodStart,
-                    periodEnd = periodEnd,
-                    milestoneNumber = week
+        val isStillPregnant = profile.isPregnancy && now < profile.birthdateMillis
+
+        // ── FASE 1: gestação ──
+        if (isStillPregnant) {
+            val msUntilBirth = profile.birthdateMillis - now
+            val currentWeeksRemaining = (msUntilBirth / SimulationMode.weekMillis).toInt()
+            // Semana inicial registrada (no momento do cadastro)
+            val initialMs = profile.birthdateMillis - profile.createdAtMillis
+            val initialWeeksRemaining =
+                (initialMs / SimulationMode.weekMillis).toInt().coerceAtMost(MAX_PREGNANCY_WEEKS)
+
+            // Cria entries para cada valor de "semanas restantes" cruzado, do
+            // initial (alto) até current (baixo).
+            for (wr in initialWeeksRemaining downTo currentWeeksRemaining.coerceAtLeast(0)) {
+                if (wr in existingPregnancyWeeks) continue
+                if (wr > MAX_PREGNANCY_WEEKS) continue
+                val text = pregnancyWeekText(profile.firstName, wr)
+                storage.saveMoment(
+                    MomentEntry(
+                        id = newUuid(),
+                        text = text,
+                        type = MomentType.PREGNANCY_WEEK,
+                        createdAt = nowMillis(),
+                        periodStart = profile.birthdateMillis - (wr + 1) * SimulationMode.weekMillis,
+                        periodEnd = profile.birthdateMillis - wr * SimulationMode.weekMillis,
+                        milestoneNumber = wr
+                    )
                 )
-            )
-            newWeekEntries++
+                newPregnancyEntries++
+            }
         }
 
-        // Mesversários (até 12 meses)
-        val monthsCap = minOf(age.months, MAX_MONTHS)
-        for (month in 1..monthsCap) {
-            if (month in existingMonths) continue
-            val periodStart = profile.birthdateMillis + (month - 1) * SimulationMode.monthMillis
-            val periodEnd = profile.birthdateMillis + month * SimulationMode.monthMillis
-            storage.saveMoment(
-                MomentEntry(
-                    id = newUuid(),
-                    text = "${profile.firstName} fez $month ${if (month == 1) "mês" else "meses"}!",
-                    type = MomentType.MESVERSARIO,
-                    createdAt = nowMillis(),
-                    periodStart = periodStart,
-                    periodEnd = periodEnd,
-                    milestoneNumber = month
+        // ── FASE 2 e 3: pós-nascimento ──
+        if (now >= profile.birthdateMillis) {
+            val msSinceBirth = now - profile.birthdateMillis
+
+            // Dias de vida (cap 30 e antes do primeiro mesversário)
+            val daysCap = minOf((msSinceBirth / SimulationMode.dayMillis).toInt(), MAX_DAYS)
+            val firstMonthEnd = profile.birthdateMillis + SimulationMode.monthMillis
+            for (day in 1..daysCap) {
+                if (day in existingDays) continue
+                val periodStart = profile.birthdateMillis + (day - 1) * SimulationMode.dayMillis
+                val periodEnd = profile.birthdateMillis + day * SimulationMode.dayMillis
+                if (periodEnd > firstMonthEnd) break
+                storage.saveMoment(
+                    MomentEntry(
+                        id = newUuid(),
+                        text = "${profile.firstName} — dia $day de vida 🌱",
+                        type = MomentType.DAY_OF_LIFE,
+                        createdAt = nowMillis(),
+                        periodStart = periodStart,
+                        periodEnd = periodEnd,
+                        milestoneNumber = day
+                    )
                 )
-            )
-            newMonthEntries++
-            if (month > latestNewMonth) latestNewMonth = month
+                newDayEntries++
+            }
+
+            // Mesversários (cap 12)
+            val monthsCap = minOf((msSinceBirth / SimulationMode.monthMillis).toInt(), MAX_MONTHS)
+            for (month in 1..monthsCap) {
+                if (month in existingMonths) continue
+                val periodStart = profile.birthdateMillis + (month - 1) * SimulationMode.monthMillis
+                val periodEnd = profile.birthdateMillis + month * SimulationMode.monthMillis
+                storage.saveMoment(
+                    MomentEntry(
+                        id = newUuid(),
+                        text = "${profile.firstName} fez $month ${if (month == 1) "mês" else "meses"}!",
+                        type = MomentType.MESVERSARIO,
+                        createdAt = nowMillis(),
+                        periodStart = periodStart,
+                        periodEnd = periodEnd,
+                        milestoneNumber = month
+                    )
+                )
+                newMonthEntries++
+                if (month > latestNewMonth) latestNewMonth = month
+            }
         }
+
+        val age = AgeCalculator.calculateAge(profile, now)
 
         return SynthesisResult(
-            newWeekEntries = newWeekEntries,
+            newPregnancyEntries = newPregnancyEntries,
+            newDayEntries = newDayEntries,
             newMonthEntries = newMonthEntries,
             latestNewMonth = latestNewMonth,
             currentAge = age
         )
     }
 
+    private fun pregnancyWeekText(name: String, weeksRemaining: Int): String = when (weeksRemaining) {
+        0 -> "$name pode chegar a qualquer momento! 🌟"
+        1 -> "1 semana pra $name chegar 🤍"
+        else -> "faltam $weeksRemaining semanas pro $name chegar 🌱"
+    }
+
     data class SynthesisResult(
-        val newWeekEntries: Int,
+        val newPregnancyEntries: Int,
+        val newDayEntries: Int,
         val newMonthEntries: Int,
         /** 0 se nenhum mesversário novo. */
         val latestNewMonth: Int,

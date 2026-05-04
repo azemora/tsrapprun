@@ -20,10 +20,11 @@ final class MomentNotificationScheduler {
     private static let dailyId = "moment_reminder_daily"
     private static let weeklyId = "moment_reminder_weekly"
     private static let testId = "moment_reminder_test"
-    private static let childWeekIdPrefix = "child_week_"
+    private static let pregnancyIdPrefix = "child_pregnancy_"
+    private static let dayOfLifeIdPrefix = "child_day_"
     private static let childMonthIdPrefix = "child_month_"
 
-    /// Em modo simulação: 1 minuto = 1 semana. Trocar em release.
+    /// Em modo simulação: 1h = 1 semana, 4h = 1 mês. Trocar em release.
     private let simulationFastForward = true
 
     init() {
@@ -58,46 +59,66 @@ final class MomentNotificationScheduler {
 
     // MARK: - Notificações da criança
 
-    /// Agenda 12 lembretes semanais e 12 mesversários. Idempotente —
-    /// remove os antigos antes de re-agendar.
+    /// Agenda lembretes em 3 fases:
+    ///  1. Gestação (DPP futura): countdown semanal (faltam N semanas)
+    ///  2. Recém-nascido (< 1 mês): contagem diária (dia N de vida)
+    ///  3. Bebê (1-12 meses): mesversário mensal
+    /// Idempotente — remove os antigos antes de re-agendar.
     func scheduleChildNotifications(firstName: String, birthdateMillis: Int64) {
-        // Cancela qualquer agendamento prévio dessa categoria
         cancelChildNotifications()
 
-        // Modo simulação: 1h = 1 semana, 4h = 1 mês.
         let weekSeconds: TimeInterval = simulationFastForward ? 3600.0 : 7.0 * 24 * 60 * 60
+        let daySeconds: TimeInterval = weekSeconds / 7.0
         let monthSeconds: TimeInterval = simulationFastForward ? 14_400.0 : 30.44 * 24 * 60 * 60
         let nowMs = Int64(Date().timeIntervalSince1970 * 1000.0)
-        let elapsedSec = TimeInterval((nowMs - birthdateMillis)) / 1000.0
-
-        // Sanitiza nome (mesmo que Compose já tenha sanitizado, defesa em
-        // profundidade — protege contra strings com caracteres exóticos).
         let safeName = sanitize(firstName)
 
-        // Semanas: só agenda lembretes para as primeiras 4 semanas
-        // (depois disso o ciclo vira mensal — mesversários).
-        let currentWeek = Int(elapsedSec / weekSeconds)
+        // ── FASE 1: gestação (DPP no futuro) ──
+        if birthdateMillis > nowMs {
+            let secsUntilBirth = TimeInterval((birthdateMillis - nowMs)) / 1000.0
+            let currentWeeksRemaining = Int(secsUntilBirth / weekSeconds)
+            // Agenda lembretes para os próximos 12 marcos semanais (caps a 0)
+            let lower = max(0, currentWeeksRemaining - 12)
+            for wr in stride(from: currentWeeksRemaining - 1, through: lower, by: -1) {
+                let targetSec = secsUntilBirth - Double(currentWeeksRemaining - wr) * weekSeconds
+                let triggerSec = secsUntilBirth - (TimeInterval(wr) * weekSeconds)
+                guard triggerSec > 0 else { continue }
+                let label = wr == 0 ? "🌟 \(safeName) pode chegar a qualquer momento!"
+                                    : "🌱 faltam \(wr) semana\(wr == 1 ? "" : "s") pro \(safeName) chegar"
+                scheduleOneTime(
+                    identifier: "\(Self.pregnancyIdPrefix)\(wr)",
+                    title: label,
+                    body: "abra o app pra ver os marcos.",
+                    interval: triggerSec
+                )
+                _ = targetSec  // suprime warning
+            }
+            // Não agenda dia/mesversário ainda — só após o nascimento
+            return
+        }
+
+        // ── FASE 2 e 3: pós-nascimento ──
+        let elapsedSec = TimeInterval((nowMs - birthdateMillis)) / 1000.0
         let firstMonthSec = monthSeconds
-        for week in 1...4 {
-            let targetWeek = week
-            let triggerSec = TimeInterval(targetWeek) * weekSeconds - elapsedSec
+
+        // Dias de vida (cap 30 e antes do primeiro mesversário)
+        let currentDay = Int(elapsedSec / daySeconds)
+        for day in 1...30 {
+            if Double(day) * daySeconds > firstMonthSec { break }
+            guard day > currentDay else { continue }
+            let triggerSec = TimeInterval(day) * daySeconds - elapsedSec
             guard triggerSec > 0 else { continue }
-            // Para se ultrapassar 1 mês de vida.
-            if TimeInterval(targetWeek) * weekSeconds > firstMonthSec { break }
-            // Já passou dessa semana?
-            guard targetWeek > currentWeek else { continue }
             scheduleOneTime(
-                identifier: "\(Self.childWeekIdPrefix)\(targetWeek)",
-                title: "🌱 \(safeName) está com \(targetWeek) semana\(targetWeek == 1 ? "" : "s")",
-                body: "registre o que aconteceu nessa semana.",
+                identifier: "\(Self.dayOfLifeIdPrefix)\(day)",
+                title: "🌱 \(safeName) — dia \(day) de vida",
+                body: "registre o que aconteceu hoje.",
                 interval: triggerSec
             )
         }
 
         // Mesversários: cap em 12 meses
         let currentMonth = Int(elapsedSec / monthSeconds)
-        let monthsRemaining = max(0, 12 - currentMonth)
-        for offset in 1...max(monthsRemaining, 1) {
+        for offset in 1...12 {
             let targetMonth = currentMonth + offset
             if targetMonth > 12 { break }
             let triggerSec = TimeInterval(targetMonth) * monthSeconds - elapsedSec
@@ -116,7 +137,8 @@ final class MomentNotificationScheduler {
             let ids = requests
                 .map { $0.identifier }
                 .filter {
-                    $0.hasPrefix(Self.childWeekIdPrefix) ||
+                    $0.hasPrefix(Self.pregnancyIdPrefix) ||
+                    $0.hasPrefix(Self.dayOfLifeIdPrefix) ||
                     $0.hasPrefix(Self.childMonthIdPrefix)
                 }
             self.center.removePendingNotificationRequests(withIdentifiers: ids)

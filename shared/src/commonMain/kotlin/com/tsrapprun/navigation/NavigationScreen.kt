@@ -63,4 +63,10 @@ sealed class NavigationScreen {
 
     /** Tela de comemoração de mesversário. */
     data class MesversarioAnnouncement(val monthsCompleted: Int) : NavigationScreen()
+
+    /** Menu de historinhas infantis. */
+    data object Stories : NavigationScreen()
+
+    /** Calendário com feriados marcados. */
+    data object Calendar : NavigationScreen()
 }

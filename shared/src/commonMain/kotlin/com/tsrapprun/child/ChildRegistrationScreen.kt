@@ -1,15 +1,9 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
- * ║  ChildRegistrationScreen.kt — Cadastro do perfil da criança ║
+ * ║  ChildRegistrationScreen.kt — Cadastro do perfil             ║
  * ║                                                              ║
- * ║  Coleta primeiro nome + data de nascimento. Sanitiza via     ║
- * ║  ChildProfileSanitizer antes de persistir.                   ║
- * ║                                                              ║
- * ║  SEGURANÇA:                                                  ║
- * ║   • Compose `Text`/`TextField` não interpretam HTML/JS.      ║
- * ║   • Input é validado em ChildProfileSanitizer (defesa em     ║
- * ║     profundidade contra XSS, prompt injection, etc).         ║
- * ║   • Limite de comprimento aplicado no TextField.             ║
+ * ║  Toggle: já nasceu / data prevista de parto.                 ║
+ * ║  Sanitização via ChildProfileSanitizer.                      ║
  * ╚══════════════════════════════════════════════════════════════╝
  */
 package com.tsrapprun.child
@@ -53,8 +47,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,10 +65,11 @@ import com.tsrapprun.ui.theme.CozyTan
 @Composable
 fun ChildRegistrationScreen(
     initialProfile: ChildProfile? = null,
-    onSave: (firstName: String, birthdateMillis: Long) -> Unit,
+    onSave: (firstName: String, birthdateMillis: Long, isPregnancy: Boolean) -> Unit,
     onCancel: (() -> Unit)? = null
 ) {
     var firstName by remember { mutableStateOf(initialProfile?.firstName ?: "") }
+    var isPregnancy by remember { mutableStateOf(initialProfile?.isPregnancy ?: false) }
 
     val now = nowMillis()
     val nowComponents = dateComponentsOf(now)
@@ -120,12 +115,11 @@ fun ChildRegistrationScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // ── Cabeçalho ──
             Box(
                 modifier = Modifier.size(80.dp).clip(CircleShape).background(CozySage),
                 contentAlignment = Alignment.Center
             ) {
-                Text("👶", fontSize = 38.sp)
+                Text(if (isPregnancy) "🤰" else "👶", fontSize = 38.sp)
             }
             Spacer(Modifier.height(16.dp))
             Text(
@@ -136,14 +130,39 @@ fun ChildRegistrationScreen(
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                "conta um pouco sobre o seu pequeno",
+                if (isPregnancy) "conta um pouco sobre essa expectativa"
+                else "conta um pouco sobre o seu pequeno",
                 fontSize = 14.sp,
                 color = CozyOlive.copy(alpha = 0.7f)
             )
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(24.dp))
 
-            // ── Primeiro nome ──
+            // ── Toggle: já nasceu / DPP ──
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(CozyCream)
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                ToggleOption(
+                    modifier = Modifier.weight(1f),
+                    label = "já nasceu",
+                    selected = !isPregnancy,
+                    onClick = { isPregnancy = false }
+                )
+                ToggleOption(
+                    modifier = Modifier.weight(1f),
+                    label = "está pra chegar",
+                    selected = isPregnancy,
+                    onClick = { isPregnancy = true }
+                )
+            }
+
+            Spacer(Modifier.height(20.dp))
+
             Text(
                 "primeiro nome",
                 fontSize = 13.sp,
@@ -154,10 +173,9 @@ fun ChildRegistrationScreen(
             OutlinedTextField(
                 value = firstName,
                 onValueChange = { input ->
-                    // Limita comprimento na entrada (defesa em profundidade)
                     if (input.length <= 50) firstName = input
                 },
-                placeholder = { Text("ex: Maria, João, Lis") },
+                placeholder = { Text(if (isPregnancy) "ex: o nome escolhido" else "ex: Maria, João, Lis") },
                 singleLine = true,
                 shape = RoundedCornerShape(20.dp),
                 modifier = Modifier.fillMaxWidth(),
@@ -172,9 +190,8 @@ fun ChildRegistrationScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // ── Data de nascimento ──
             Text(
-                "data de nascimento",
+                if (isPregnancy) "data prevista de parto (DPP)" else "data de nascimento",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = CozyOlive,
@@ -204,7 +221,6 @@ fun ChildRegistrationScreen(
                 )
             }
 
-            // ── Erro ──
             if (errorMessage != null) {
                 Spacer(Modifier.height(16.dp))
                 Card(
@@ -224,7 +240,6 @@ fun ChildRegistrationScreen(
 
             Spacer(Modifier.height(28.dp))
 
-            // ── Aviso de privacidade (LGPD) ──
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -241,7 +256,7 @@ fun ChildRegistrationScreen(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "esses dados nunca saem do dispositivo. usamos só para calcular semanas, mesversários e enviar lembretes locais.",
+                        "esses dados nunca saem do dispositivo. usamos para calcular semanas, dias, mesversários e enviar lembretes locais.",
                         fontSize = 12.sp,
                         color = CozyOlive.copy(alpha = 0.7f),
                         lineHeight = 18.sp
@@ -258,13 +273,18 @@ fun ChildRegistrationScreen(
                         errorMessage = "data inválida — confira dia, mês e ano."
                         return@Button
                     }
-                    when (val result = ChildProfileSanitizer.sanitize(firstName, parsedMillis, nowMillis())) {
+                    when (val result = ChildProfileSanitizer.sanitize(
+                        rawName = firstName,
+                        birthdateMillis = parsedMillis,
+                        isPregnancy = isPregnancy,
+                        nowMillis = nowMillis()
+                    )) {
                         is ChildProfileSanitizer.Result.Invalid -> {
                             errorMessage = result.message
                         }
                         is ChildProfileSanitizer.Result.Valid -> {
                             errorMessage = null
-                            onSave(result.firstName, result.birthdateMillis)
+                            onSave(result.firstName, result.birthdateMillis, result.isPregnancy)
                         }
                     }
                 },
@@ -283,6 +303,31 @@ fun ChildRegistrationScreen(
             }
 
             Spacer(Modifier.height(20.dp))
+        }
+    }
+}
+
+@Composable
+private fun ToggleOption(
+    modifier: Modifier,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .height(48.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(24.dp),
+        color = if (selected) CozySage else Color.Transparent
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                label,
+                fontSize = 14.sp,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                color = if (selected) Color.White else CozyOlive.copy(alpha = 0.7f)
+            )
         }
     }
 }
