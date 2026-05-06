@@ -1,0 +1,66 @@
+We need to adjust the memory book(claude design)
+  photo processing part
+   - remove background
+   - identifie the person in the picture (data processing)
+   - adjust a dynamic layout 
+
+the book needs to be interactive, if we click in the picture it should open up, play some animations. 
+Somhehow turn this into a sharable midia 
+VER CONEXAO DA LIGGA TELECOM 
+
+Dentro do evento existem dois botoes, adicionar fotos que deveria abrir o app da galeria e permitir adicionar fotos, precisamos
+tambem implementar uma forma de deixar o usuario reorganizar arrastando as fotos dentro do album.
+
+O outro botao ao livro, nao sei o que faz e o que deveria fazer
+
+Talvez criar um sistema onde o evento dia vira uma carta (exemplo carta do fifa)
+(ideia mais pet)
+
+Alterar os icones do lembrete e do registro rapido
+Fazer varredura automatica automatica dos arquivos na galeria e importar automaticamente para o app
+(quais os riscos, custos e beneficios disso)
+opcao de revogar o concentimento para essas funcoes 
+
+precisamos limitar o texto no display no registo, acho seja legal fazer um registro com um limite de palavras, mas no display
+o texto deve ser cortado e mostrar com reticencia(imagem de exemplo), ai ao abrir o registro, implementar um scroll para continuar o texto
+
+Caso a data seja colocada, calcular os dados do usuario mas nao precisa executar os aniversarios passados nem mesversario, apenas se O
+usuario quiser. Ao clicar na tela, nao esta indo para o evento (eventos gerados pelo codigo)
+
+fazer a varredura dos dado no app, quais os riscos disso, sql injection, quais as vulnerabilidades de seguranca de executar esse processing
+Como exportar os cards para instagram
+ - Isso eh uma boa acao de marketing, feito via app tesourinhos
+ - 
+
+Ja sobre as notificacoes, colocar no cadastro a idade da crianca, fazer mapa astral? signo? quais outras pseudociencias as
+maes gostam, identificar super dotacao, quais instrucoes e orientacoes colocar no app 
+
+Destacar no calendario nos proximos anos o aniversario da crianca, no mes do aniversario customizar a imagem do mes tbm, colocar algo
+festivo, x dias ate o aniversario no calendario.
+
+Preparar o app para ser instalado em um iphone 13. Crie outra branch caso seja necessario para diferentes versoes do iphone 
+
+Na aba de lembretes colocar uma opcao de excluir lembretes concluidos, com verificao de tem certeza. Caso algum lembrete ou marco
+tenha contexto hospitalar como marcar medico, exames, manter uma list salva com a data que foi criado e a data que foi executado o evento
+para o usuario poder checar no futuro o dia que foi o exame(melhorar essa ideia)
+
+Fazer auditoria do codigo inteiro e procurar vulnerabilidades, usar criptografia nos dados, beyonb vibe coding reler e pegar a visao 
+do que precisa ser feito.
+
+implementar ou excluir a opcao de marcadores no registro, lixeira para ver os registros excluidos. Caso o usuario exclua uma foto do celular
+coomo ficara o registro? devemos criar uma copia da foto? criar outro album para o app? acho que o android ja fazia isso mas nao sei
+se o ios esta executando assim 
+
+pq eu nao consigo testar a funcao de buscar na galeria no similador, atualmente possuem fotos salvas na memoria do simulador, as fotos das
+floros por exemplo, escolher e fazer upload delas
+
+Opcao continua como convidado nao esta funcionando, ao clicar nada acontece, devemos criar um metodo offline, depois o usuario Comecan
+a usar, como fica para fazermos a migracao dos dados para o servidor 
+
+usar fotos stock de criancas na home page do app? se for gratuito, aplicar ads na tela ?
+
+O que a assinatura premium oferece? Mudar a ui talvz? 
+
+Onde esta a ui de historias infantis? O que eh interessante para diferentes criancas de diferentes idades 
+
+Testar a simulador em iphone 13 e listar quais as diferencas entre iphones, em qual range devemos publicar o app

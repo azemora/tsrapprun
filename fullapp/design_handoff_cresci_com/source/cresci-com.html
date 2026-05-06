@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>cresci·com — Design Exploration</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..700,30..100;1,9..144,300..700,30..100&family=Inter:wght@400;500;600;700&family=Caveat:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #EAE0C9; font-family: 'Inter', system-ui, sans-serif; color: #3E2E1E; }
+  *, *::before, *::after { box-sizing: border-box; }
+  button { font-family: inherit; cursor: pointer; }
+  body { font-feature-settings: "ss01", "ss02"; }
+  @keyframes blink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tsr-system.jsx"></script>
+<script type="text/babel" src="tsr-chrome.jsx"></script>
+
+<script type="text/babel" src="screens/front-page.jsx"></script>
+<script type="text/babel" src="screens/login.jsx"></script>
+<script type="text/babel" src="screens/child-registration.jsx"></script>
+<script type="text/babel" src="screens/home.jsx"></script>
+<script type="text/babel" src="screens/moments-list.jsx"></script>
+<script type="text/babel" src="screens/moment-registration.jsx"></script>
+<script type="text/babel" src="screens/memory-book.jsx"></script>
+<script type="text/babel" src="screens/calendar.jsx"></script>
+<script type="text/babel" src="screens/stories.jsx"></script>
+<script type="text/babel" src="screens/mesversario.jsx"></script>
+<script type="text/babel" src="screens/events.jsx"></script>
+
+<script type="text/babel">
+  const { DesignCanvas, DCSection, DCArtboard } = window;
+
+  const W = 390, H = 844;
+
+  function App() {
+    return (
+      <DesignCanvas
+        title="cresci·com — direção visual"
+        subtitle="cozy + livro ilustrado · 11 telas reescritas na linguagem D+B"
+      >
+        <DCSection id="entry" title="entrada" subtitle="primeira impressão e onboarding">
+          <DCArtboard id="frontpage-d" label="Front Page ✦ default" width={W} height={H}>
+            <FrontPageD />
+          </DCArtboard>
+          <DCArtboard id="login" label="Login" width={W} height={H}>
+            <LoginA />
+          </DCArtboard>
+          <DCArtboard id="child-reg" label="Cadastro do bebê" width={W} height={H}>
+            <ChildRegistrationA />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="core" title="dia-a-dia" subtitle="navegação principal">
+          <DCArtboard id="home" label="Início (Home)" width={W} height={H}>
+            <HomeA />
+          </DCArtboard>
+          <DCArtboard id="calendar" label="Calendário" width={W} height={H}>
+            <CalendarA />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="moments" title="registros" subtitle="capturando momentos">
+          <DCArtboard id="moments-list" label="Lista de Registros" width={W} height={H}>
+            <MomentsListA />
+          </DCArtboard>
+          <DCArtboard id="moment-reg" label="Novo Registro" width={W} height={H}>
+            <MomentRegistrationA />
+          </DCArtboard>
+          <DCArtboard id="mesversario" label="Mesversário" width={W} height={H}>
+            <MesversarioA />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="events" title="eventos" subtitle="capturas em lote">
+          <DCArtboard id="events-list" label="Lista de Eventos" width={W} height={H}>
+            <EventListA />
+          </DCArtboard>
+          <DCArtboard id="event-camera" label="Câmera do Evento" width={W} height={H}>
+            <EventCameraA />
+          </DCArtboard>
+          <DCArtboard id="event-naming" label="Nomear Evento" width={W} height={H}>
+            <EventNamingA />
+          </DCArtboard>
+          <DCArtboard id="photo-grid" label="Grid de Fotos" width={W} height={H}>
+            <PhotoGridA />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="content" title="conteúdo" subtitle="livro de memórias e histórias">
+          <DCArtboard id="memory-book" label="Livro de Memórias" width={W} height={H}>
+            <MemoryBookA />
+          </DCArtboard>
+          <DCArtboard id="stories" label="Histórias" width={W} height={H}>
+            <StoriesA />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="alt" title="alternativas (FrontPage)" subtitle="referência das 3 direções iniciais">
+          <DCArtboard id="fp-a" label="A — refinamento direto" width={W} height={H}>
+            <FrontPageA />
+          </DCArtboard>
+          <DCArtboard id="fp-b" label="B — editorial" width={W} height={H}>
+            <FrontPageB />
+          </DCArtboard>
+          <DCArtboard id="fp-c" label="C — bold playful" width={W} height={H}>
+            <FrontPageC />
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
