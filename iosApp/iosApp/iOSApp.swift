@@ -6,11 +6,15 @@ import shared
 struct iOSApp: App {
     /// Mantém os handlers vivos enquanto o app roda — bridges guardam só weak refs.
     private let cameraHandler: EventCameraHandler
+    private let audioHandler: AudioRecorderHandler
+    private let photoPickerHandler: PhotoPickerHandler
     private let notificationScheduler: MomentNotificationScheduler
 
     init() {
         let scheduler = MomentNotificationScheduler()
         cameraHandler = EventCameraHandler()
+        audioHandler = AudioRecorderHandler()
+        photoPickerHandler = PhotoPickerHandler()
         notificationScheduler = scheduler
 
         // Pede permissão na primeira execução e agenda os lembretes.

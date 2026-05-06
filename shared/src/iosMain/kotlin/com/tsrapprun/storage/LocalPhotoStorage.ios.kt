@@ -26,6 +26,7 @@ package com.tsrapprun.storage
 import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.PhotoData
 import com.tsrapprun.child.ChildProfile
+import com.tsrapprun.moments.MomentDraft
 import com.tsrapprun.moments.MomentEntry
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
@@ -60,6 +61,7 @@ actual class LocalPhotoStorage {
     private val photoIndexMutex = Mutex()
     private val eventIndexMutex = Mutex()
     private val momentIndexMutex = Mutex()
+    private val reminderIndexMutex = Mutex()
 
     private val documentsDir: String by lazy {
         val urls = NSFileManager.defaultManager.URLsForDirectory(
@@ -86,6 +88,9 @@ actual class LocalPhotoStorage {
     private val momentIndexFile: String get() = "$documentsDir/moment_index.json"
     private val childProfileFile: String get() = "$documentsDir/child_profile.json"
     private val childProfileMutex = Mutex()
+    private val momentDraftFile: String get() = "$documentsDir/moment_draft.json"
+    private val momentDraftMutex = Mutex()
+    private val reminderIndexFile: String get() = "$documentsDir/reminder_index.json"
 
     // ══════════════════════════════════════════════
     // FOTOS
@@ -219,6 +224,66 @@ actual class LocalPhotoStorage {
     actual suspend fun getChildProfile(): ChildProfile? = withContext(Dispatchers.Default) {
         readJsonText(childProfileFile)?.let { text ->
             runCatching { json.decodeFromString<ChildProfile>(text) }.getOrNull()
+        }
+    }
+
+    // ── RASCUNHO DE REGISTRO ──
+
+    actual suspend fun saveMomentDraft(draft: MomentDraft) = withContext(Dispatchers.Default) {
+        momentDraftMutex.withLock {
+            writeJsonText(momentDraftFile, json.encodeToString(draft))
+        }
+    }
+
+    actual suspend fun getMomentDraft(): MomentDraft? = withContext(Dispatchers.Default) {
+        readJsonText(momentDraftFile)?.let { text ->
+            runCatching { json.decodeFromString<MomentDraft>(text) }.getOrNull()
+        }
+    }
+
+    actual suspend fun clearMomentDraft() = withContext(Dispatchers.Default) {
+        momentDraftMutex.withLock {
+            NSFileManager.defaultManager.removeItemAtPath(momentDraftFile, null)
+            Unit
+        }
+    }
+
+    // ══════════════════════════════════════════════
+    // LEMBRETES
+    // ══════════════════════════════════════════════
+
+    actual suspend fun saveReminder(reminder: com.tsrapprun.reminders.Reminder) {
+        updateReminderIndex { it + reminder }
+    }
+
+    actual suspend fun listReminders(): List<com.tsrapprun.reminders.Reminder> = withContext(Dispatchers.Default) {
+        readReminderIndex().sortedByDescending { it.createdAt }
+    }
+
+    actual suspend fun updateReminder(reminder: com.tsrapprun.reminders.Reminder) {
+        updateReminderIndex { list -> list.map { if (it.id == reminder.id) reminder else it } }
+    }
+
+    actual suspend fun deleteReminder(reminderId: String): Boolean = withContext(Dispatchers.Default) {
+        try {
+            updateReminderIndex { list -> list.filter { it.id != reminderId } }
+            true
+        } catch (t: Throwable) {
+            false
+        }
+    }
+
+    private fun readReminderIndex(): List<com.tsrapprun.reminders.Reminder> =
+        readJsonText(reminderIndexFile)?.let {
+            runCatching { json.decodeFromString<List<com.tsrapprun.reminders.Reminder>>(it) }.getOrNull()
+        } ?: emptyList()
+
+    private suspend fun updateReminderIndex(
+        transform: (List<com.tsrapprun.reminders.Reminder>) -> List<com.tsrapprun.reminders.Reminder>
+    ) {
+        reminderIndexMutex.withLock {
+            val updated = transform(readReminderIndex())
+            writeJsonText(reminderIndexFile, json.encodeToString(updated))
         }
     }
 

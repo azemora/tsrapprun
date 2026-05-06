@@ -1,15 +1,18 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
- * ║  EventListScreen.kt - Lista Completa de Eventos             ║
- * ║                                                             ║
- * ║  Cards horizontais com thumbnail fade à esquerda,           ║
- * ║  nome e data alinhados à direita.                           ║
+ * ║  EventListScreen.kt — tradução de fullapp/screens/events.jsx ║
+ * ║  (EventListA)                                                ║
+ * ║                                                              ║
+ * ║  Lista de eventos com photo stack mini (2 polaroides         ║
+ * ║  sobrepostas), tag de data, título italic e contagem de      ║
+ * ║  fotos. Agrupados por ano.                                   ║
  * ╚══════════════════════════════════════════════════════════════╝
  */
 package com.tsrapprun.gallery
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,44 +20,43 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.PhotoData
+import com.tsrapprun.platform.dateComponentsOf
+import com.tsrapprun.ui.chrome.OliveDeep
+import com.tsrapprun.ui.chrome.PhotoGray
+import com.tsrapprun.ui.chrome.PhotoGrayLight
+import com.tsrapprun.ui.chrome.ScreenHeader
+import com.tsrapprun.ui.chrome.Tag
+import com.tsrapprun.ui.chrome.italicSerifText
+import com.tsrapprun.ui.theme.CozyAmberDeep
+import com.tsrapprun.ui.theme.CozyCream
+import com.tsrapprun.ui.theme.CozyCreamDeep
+import com.tsrapprun.ui.theme.CozyOlive
 
 @Composable
 fun EventListScreen(
@@ -62,68 +64,82 @@ fun EventListScreen(
     allPhotos: List<PhotoData>,
     onLoadThumbnail: suspend (PhotoData) -> ByteArray?,
     onOpenEvent: (EventData) -> Unit,
+    onCreate: () -> Unit = {},
     onBack: () -> Unit
 ) {
-    val sortedEvents = remember(events) {
-        events.sortedByDescending { it.createdAt }
+    // Mostra apenas eventos marcados como marco.
+    val sorted = remember(events) {
+        events.filter { it.isMilestone }.sortedByDescending { it.createdAt }
+    }
+    // groupBy preserva ordem de inserção (LinkedHashMap), e como sorted já está
+    // descendente por data, os anos saem do mais recente pro mais antigo.
+    val groups: Map<Int, List<EventData>> = remember(sorted) {
+        sorted.groupBy { dateComponentsOf(it.createdAt).year }
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(CozyCream)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.statusBars)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
         ) {
-            // ── Header ──
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextButton(onClick = onBack) {
-                    Text("\u2190 Voltar", style = MaterialTheme.typography.titleMedium)
+            ScreenHeader(
+                chapter = "vol. 01 — marcos",
+                title = italicSerifText(
+                    prefix = "seus ",
+                    italic = "marcos",
+                    italicColor = CozyAmberDeep,
+                    defaultColor = OliveDeep
+                ),
+                subtitle = "primeiras vezes, aniversários, momentos especiais ✦",
+                onBack = onBack,
+                rightContent = {
+                    Surface(
+                        modifier = Modifier.size(32.dp).clickable(onClick = onCreate),
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = OliveDeep,
+                        shadowElevation = 3.dp
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                "+",
+                                fontFamily = FontFamily.Serif,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = CozyCream
+                            )
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                Text(
-                    "Eventos",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                // Balanceamento
-                Spacer(modifier = Modifier.width(80.dp))
-            }
+            )
 
-            if (sortedEvents.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "Nenhum evento registrado",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                }
+            if (sorted.isEmpty()) {
+                EmptyState()
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 22.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp)
                 ) {
-                    items(sortedEvents, key = { it.id }) { event ->
-                        EventListCard(
-                            event = event,
-                            allPhotos = allPhotos,
-                            onLoadThumbnail = onLoadThumbnail,
-                            onClick = { onOpenEvent(event) }
-                        )
+                    groups.entries.forEach { entry ->
+                        val year = entry.key
+                        val list = entry.value
+                        item(key = "h$year") {
+                            YearSash(label = year.toString())
+                        }
+                        items(count = list.size, key = { i -> list[i].id }) { index ->
+                            val event = list[index]
+                            val thumb = remember(event.thumbnailPhotoId, allPhotos) {
+                                allPhotos.find { it.id == event.thumbnailPhotoId }
+                            }
+                            EventRow(
+                                event = event,
+                                thumbnailPhoto = thumb,
+                                onLoadThumbnail = onLoadThumbnail,
+                                onClick = { onOpenEvent(event) }
+                            )
+                            Spacer(Modifier.height(12.dp))
+                        }
                     }
-                    // Padding inferior
-                    item { Spacer(modifier = Modifier.height(16.dp)) }
                 }
             }
         }
@@ -131,136 +147,153 @@ fun EventListScreen(
 }
 
 @Composable
-private fun EventListCard(
+private fun YearSash(label: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.width(14.dp).height(1.dp).background(CozyOlive.copy(alpha = 0.4f)))
+        Spacer(Modifier.width(10.dp))
+        Tag(label, color = OliveDeep)
+        Spacer(Modifier.width(10.dp))
+        Box(Modifier.weight(1f).height(1.dp).background(CozyOlive.copy(alpha = 0.18f)))
+    }
+}
+
+@Composable
+private fun EventRow(
     event: EventData,
-    allPhotos: List<PhotoData>,
+    thumbnailPhoto: PhotoData?,
     onLoadThumbnail: suspend (PhotoData) -> ByteArray?,
     onClick: () -> Unit
 ) {
-    val thumbnailPhoto = remember(event.thumbnailPhotoId, allPhotos) {
-        allPhotos.find { it.id == event.thumbnailPhotoId }
-    }
-
-    var thumbnail by remember(event.id) { mutableStateOf<ImageBitmap?>(null) }
-    var isLoading by remember(event.id) { mutableStateOf(true) }
-
-    LaunchedEffect(thumbnailPhoto?.id) {
-        if (thumbnailPhoto != null) {
-            isLoading = true
-            val bytes = onLoadThumbnail(thumbnailPhoto)
-            thumbnail = bytes?.let { decodeThumbnail(it) }
-            isLoading = false
-        } else {
-            isLoading = false
-        }
-    }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp)
-            .clickable(onClick = onClick),
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        color = CozyCreamDeep,
+        border = BorderStroke(1.4.dp, CozyOlive.copy(alpha = 0.12f))
     ) {
-        Row(modifier = Modifier.fillMaxSize()) {
-            // ── Nome e data à esquerda ──
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.Start
-            ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Photo stack mini
+            PhotoStackMini(event = event, thumbnailPhoto = thumbnailPhoto, onLoadThumbnail = onLoadThumbnail)
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Tag(formatDate(event.createdAt), color = OliveDeep)
+                Spacer(Modifier.height(2.dp))
                 Text(
-                    text = event.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Start
+                    event.name,
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = OliveDeep,
+                    letterSpacing = (-0.3).sp,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    text = formatEventDate(event.createdAt),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    textAlign = TextAlign.Start
-                )
-                Text(
-                    text = "${event.photoCount} fotos",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Start
+                    "${event.photoCount} ${if (event.photoCount == 1) "foto" else "fotos"}",
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 10.sp,
+                    color = CozyOlive.copy(alpha = 0.6f)
                 )
             }
+            Text("›", fontSize = 18.sp, color = CozyOlive, fontWeight = FontWeight.Light)
+        }
+    }
+}
 
-            // ── Thumbnail à direita com fade horizontal ──
+@Composable
+private fun PhotoStackMini(
+    event: EventData,
+    thumbnailPhoto: PhotoData?,
+    onLoadThumbnail: suspend (PhotoData) -> ByteArray?
+) {
+    val bitmap = com.tsrapprun.ui.photos.rememberPhotoBitmap(thumbnailPhoto, onLoadThumbnail)
+    Box(modifier = Modifier.size(width = 76.dp, height = 80.dp)) {
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = 8.dp, top = 6.dp)
+                .size(width = 64.dp, height = 70.dp)
+                .graphicsLayer { rotationZ = -6f },
+            shape = RoundedCornerShape(4.dp),
+            color = CozyCream,
+            border = BorderStroke(1.dp, CozyOlive.copy(alpha = 0.35f)),
+            shadowElevation = 2.dp
+        ) {
             Box(
                 modifier = Modifier
-                    .width(140.dp)
-                    .fillMaxHeight()
+                    .padding(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(PhotoGrayLight)
+            )
+        }
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(width = 60.dp, height = 66.dp)
+                .graphicsLayer { rotationZ = 6f },
+            shape = RoundedCornerShape(4.dp),
+            color = CozyCream,
+            border = BorderStroke(1.dp, CozyOlive.copy(alpha = 0.35f)),
+            shadowElevation = 4.dp
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(PhotoGray),
+                contentAlignment = Alignment.Center
             ) {
-                when {
-                    isLoading -> Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.padding(8.dp),
-                            strokeWidth = 2.dp
-                        )
-                    }
-                    thumbnail != null -> Image(
-                        bitmap = thumbnail!!,
-                        contentDescription = event.name,
+                if (bitmap != null) {
+                    androidx.compose.foundation.Image(
+                        bitmap = bitmap,
+                        contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
                     )
-                    else -> Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = event.name.take(2).uppercase(),
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                        )
-                    }
+                } else {
+                    Text(
+                        event.name.firstOrNull()?.uppercase() ?: "✿",
+                        fontSize = 18.sp,
+                        fontFamily = FontFamily.Serif,
+                        fontStyle = FontStyle.Italic,
+                        color = CozyCream.copy(alpha = 0.85f)
+                    )
                 }
-
-                // Fade horizontal: fundo do card → imagem
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .width(40.dp)
-                        .align(Alignment.CenterStart)
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.surface,
-                                    Color.Transparent
-                                )
-                            )
-                        )
-                )
             }
         }
     }
 }
 
-private fun formatEventDate(epochMillis: Long): String {
-    val c = com.tsrapprun.platform.dateComponentsOf(epochMillis)
-    val d = c.day.toString().padStart(2, '0')
-    val m = (c.monthIndex + 1).toString().padStart(2, '0')
-    val y = c.year
-    val h = c.hour.toString().padStart(2, '0')
-    val min = c.minute.toString().padStart(2, '0')
-    return "$d/$m/$y $h:$min"
+@Composable
+private fun EmptyState() {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            italicSerifText(prefix = "ainda sem ", italic = "marcos", italicColor = CozyAmberDeep, defaultColor = OliveDeep),
+            fontSize = 22.sp,
+            letterSpacing = (-0.4).sp
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "marque um registro como marco ✦ na hora de criar",
+            fontSize = 13.sp,
+            color = CozyOlive.copy(alpha = 0.65f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+    }
+}
+
+private fun formatDate(epochMillis: Long): String {
+    val c = dateComponentsOf(epochMillis)
+    val short = listOf("jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez")
+    return "${c.day} ${short[c.monthIndex]}"
 }

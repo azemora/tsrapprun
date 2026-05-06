@@ -151,7 +151,13 @@ class MainActivity : ComponentActivity() {
                         photoStorage.deleteMoment(momentId)
                     },
                     onRefreshData = { refreshData() },
-                    onSaveChildProfile = { firstName, birthdateMillis, isPregnancy ->
+                    onSaveMomentDraft = { draft ->
+                        photoStorage.saveMomentDraft(draft)
+                    },
+                    onClearMomentDraft = {
+                        photoStorage.clearMomentDraft()
+                    },
+                    onSaveChildProfile = { firstName, birthdateMillis, isPregnancy, parentFirstName ->
                         when (val result = ChildProfileSanitizer.sanitize(
                             rawName = firstName,
                             birthdateMillis = birthdateMillis,
@@ -169,7 +175,8 @@ class MainActivity : ComponentActivity() {
                                         createdAtMillis = existing?.createdAtMillis ?: nowMillis(),
                                         lastSeenMonthCount = existing?.lastSeenMonthCount ?: 0,
                                         lastSeenWeekCount = existing?.lastSeenWeekCount ?: 0,
-                                        lastSeenDayCount = existing?.lastSeenDayCount ?: 0
+                                        lastSeenDayCount = existing?.lastSeenDayCount ?: 0,
+                                        parentFirstName = parentFirstName.ifBlank { null }
                                     )
                                 )
                             }
@@ -187,7 +194,14 @@ class MainActivity : ComponentActivity() {
                             .setInitialDelay(5, java.util.concurrent.TimeUnit.SECONDS)
                             .build()
                         androidx.work.WorkManager.getInstance(this@MainActivity).enqueue(testWork)
-                    }
+                    },
+                    onTestMesversario = { /* Android stub: parity only */ },
+                    onTestAniversario = { /* Android stub: parity only */ },
+                    onSaveReminder = { reminder -> photoStorage.saveReminder(reminder) },
+                    onUpdateReminder = { reminder -> photoStorage.updateReminder(reminder) },
+                    onDeleteReminder = { id -> photoStorage.deleteReminder(id) },
+                    onClearNotificationAction = { /* Android: handled via WorkManager intents */ },
+                    onPickChildAvatar = { /* Android: TODO via Photo Picker */ }
                 ),
                 uiState = AppUiState(
                     photoCount = photoCount,

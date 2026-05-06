@@ -28,5 +28,9 @@ data class EventData(
     val name: String,
     val createdAt: Long,
     val photoCount: Int = 0,
-    val thumbnailPhotoId: String? = null
+    val thumbnailPhotoId: String? = null,
+    /** Nota opcional escrita pelo usuário (Caveat handwritten no detail). */
+    val note: String? = null,
+    /** Marcado como "marco" — primeira palavra, primeira papinha, festa, etc. */
+    val isMilestone: Boolean = false
 )

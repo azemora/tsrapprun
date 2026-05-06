@@ -46,5 +46,10 @@ data class MomentEntry(
      *  • MESVERSARIO → mês de vida (1..12)
      *  • DAILY/WEEKLY → 0
      */
-    val milestoneNumber: Int = 0
+    val milestoneNumber: Int = 0,
+    /**
+     * Marcado como "marco" — manualmente pelo usuário ou auto-detectado por palavra-chave.
+     * Tipos auto (MESVERSARIO/PREGNANCY_WEEK/DAY_OF_LIFE) sempre são marcos por natureza.
+     */
+    val isMilestone: Boolean = false
 )

@@ -13,9 +13,22 @@ import shared
 // ║  precisa de servidor de push, funciona offline).             ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-final class MomentNotificationScheduler {
+final class MomentNotificationScheduler: NSObject, UNUserNotificationCenterDelegate {
 
     private let center = UNUserNotificationCenter.current()
+
+    /// Cache do nome da criança usado no copy das notificações. Atualizado
+    /// quando o perfil é (re)agendado via scheduleChildNotifications.
+    private var cachedChildFirstName: String = ""
+
+    /// Chaves do `userInfo` payload — Swift e Kotlin precisam concordar.
+    private enum ActionKey {
+        static let type = "tsr_action"
+        static let openRegistration = "open_registration"
+        static let openMesversario = "open_mesversario"
+        static let openAnniversary = "open_anniversary"
+        static let month = "tsr_month"
+    }
 
     private static let dailyId = "moment_reminder_daily"
     private static let weeklyId = "moment_reminder_weekly"
@@ -27,8 +40,11 @@ final class MomentNotificationScheduler {
     /// Em modo simulação: 1h = 1 semana, 4h = 1 mês. Trocar em release.
     private let simulationFastForward = true
 
-    init() {
+    override init() {
+        super.init()
         registerWithBridge()
+        // Auto-instala como delegate pra capturar taps em notificações.
+        center.delegate = self
     }
 
     // MARK: - Registro na bridge Compose
@@ -55,6 +71,54 @@ final class MomentNotificationScheduler {
                 }
             }
         }
+        bridge.onTestMesversario = { [weak self] firstName in
+            self?.requestAuthorizationIfNeeded { granted in
+                if granted { self?.scheduleMesversarioPreview(firstName: firstName as String) }
+            }
+        }
+        bridge.onTestAniversario = { [weak self] firstName in
+            self?.requestAuthorizationIfNeeded { granted in
+                if granted { self?.scheduleAniversarioPreview(firstName: firstName as String) }
+            }
+        }
+    }
+
+    // MARK: - Previews de mesversário/aniversário
+
+    func scheduleMesversarioPreview(firstName: String) {
+        let safe = sanitize(firstName.isEmpty ? "seu pequeno" : firstName)
+        let content = UNMutableNotificationContent()
+        content.title = "✦ mesversário do(a) \(safe)"
+        content.body = "mais um mês completinho. toque pra ver."
+        content.sound = .default
+        // Mês "1" como teste — abre a tela de mesversário ao tap
+        content.userInfo = [
+            ActionKey.type: ActionKey.openMesversario,
+            ActionKey.month: 1
+        ]
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "test.mesversario.\(Int(Date().timeIntervalSince1970))",
+            content: content,
+            trigger: trigger
+        )
+        center.add(request, withCompletionHandler: nil)
+    }
+
+    func scheduleAniversarioPreview(firstName: String) {
+        let safe = sanitize(firstName.isEmpty ? "seu pequeno" : firstName)
+        let content = UNMutableNotificationContent()
+        content.title = "🎉 aniversário do(a) \(safe)"
+        content.body = "mais um ano de vida. toque pra registrar."
+        content.sound = .default
+        content.userInfo = [ActionKey.type: ActionKey.openAnniversary]
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+        let request = UNNotificationRequest(
+            identifier: "test.aniversario.\(Int(Date().timeIntervalSince1970))",
+            content: content,
+            trigger: trigger
+        )
+        center.add(request, withCompletionHandler: nil)
     }
 
     // MARK: - Notificações da criança
@@ -65,6 +129,9 @@ final class MomentNotificationScheduler {
     ///  3. Bebê (1-12 meses): mesversário mensal
     /// Idempotente — remove os antigos antes de re-agendar.
     func scheduleChildNotifications(firstName: String, birthdateMillis: Int64) {
+        cachedChildFirstName = firstName
+        // Re-agenda os recurring com o nome atualizado.
+        scheduleRecurring()
         cancelChildNotifications()
 
         let weekSeconds: TimeInterval = simulationFastForward ? 3600.0 : 7.0 * 24 * 60 * 60
@@ -204,6 +271,8 @@ final class MomentNotificationScheduler {
     /// Diário às 20h + semanal domingo às 18h. Idempotente — substitui
     /// requests anteriores com mesmo identifier.
     func scheduleRecurring() {
+        let name = cachedChildFirstName.isEmpty ? "seu tesourinho" : cachedChildFirstName
+
         // Diário
         var dailyComponents = DateComponents()
         dailyComponents.hour = 20
@@ -214,9 +283,10 @@ final class MomentNotificationScheduler {
             repeats: true
         )
         let dailyContent = UNMutableNotificationContent()
-        dailyContent.title = "O que aconteceu hoje?"
-        dailyContent.body = "Tire um momento para registrar o seu dia."
+        dailyContent.title = "✦ o que \(name) fez hoje?"
+        dailyContent.body = "toque pra registrar agora — basta uma frase."
         dailyContent.sound = .default
+        dailyContent.userInfo = [ActionKey.type: ActionKey.openRegistration]
 
         let dailyRequest = UNNotificationRequest(
             identifier: Self.dailyId,
@@ -236,9 +306,10 @@ final class MomentNotificationScheduler {
             repeats: true
         )
         let weeklyContent = UNMutableNotificationContent()
-        weeklyContent.title = "O que aconteceu essa semana?"
-        weeklyContent.body = "Registre os momentos da sua semana antes que eles passem!"
+        weeklyContent.title = "✦ resumo da semana"
+        weeklyContent.body = "como foi a semana com \(name)? toque pra registrar."
         weeklyContent.sound = .default
+        weeklyContent.userInfo = [ActionKey.type: ActionKey.openRegistration]
 
         let weeklyRequest = UNNotificationRequest(
             identifier: Self.weeklyId,
@@ -253,8 +324,9 @@ final class MomentNotificationScheduler {
     func scheduleTest(after seconds: TimeInterval) {
         let content = UNMutableNotificationContent()
         content.title = "🌿 teste de notificação"
-        content.body = "se você tá vendo isso, tá funcionando!"
+        content.body = "toque pra abrir o registro."
         content.sound = .default
+        content.userInfo = [ActionKey.type: ActionKey.openRegistration]
 
         let trigger = UNTimeIntervalNotificationTrigger(
             timeInterval: max(seconds, 1),
@@ -266,5 +338,46 @@ final class MomentNotificationScheduler {
             trigger: trigger
         )
         center.add(request, withCompletionHandler: nil)
+    }
+
+    // MARK: - UNUserNotificationCenterDelegate
+
+    /// Permite mostrar notificação enquanto o app está em foreground (banner + som).
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
+    }
+
+    /// Tap em notificação → parseia userInfo e seta ação pendente na bridge.
+    /// Compose lê via StateFlow e dispara navegação.
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let userInfo = response.notification.request.content.userInfo
+        if let type = userInfo[ActionKey.type] as? String {
+            let action: NotificationAction
+            switch type {
+            case ActionKey.openRegistration:
+                action = NotificationAction(type: NotificationAction.companion.OPEN_REGISTRATION, month: 0)
+            case ActionKey.openMesversario:
+                let month = (userInfo[ActionKey.month] as? Int) ?? 0
+                action = NotificationAction(
+                    type: NotificationAction.companion.OPEN_MESVERSARIO,
+                    month: Int32(month)
+                )
+            case ActionKey.openAnniversary:
+                action = NotificationAction(type: NotificationAction.companion.OPEN_ANNIVERSARY, month: 0)
+            default:
+                completionHandler()
+                return
+            }
+            IosNotificationBridge.shared.setPendingAction(action: action)
+        }
+        completionHandler()
     }
 }

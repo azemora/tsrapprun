@@ -51,5 +51,9 @@ data class ChildProfile(
     val createdAtMillis: Long = 0L,
     val lastSeenMonthCount: Int = 0,
     val lastSeenWeekCount: Int = 0,
-    val lastSeenDayCount: Int = 0
+    val lastSeenDayCount: Int = 0,
+    /** Primeiro nome do pai/mãe — usado na saudação. */
+    val parentFirstName: String? = null,
+    /** ID da foto que serve de avatar do bebê (referencia PhotoData no storage). */
+    val avatarPhotoId: String? = null
 )

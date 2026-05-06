@@ -1,14 +1,18 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
- * ║  ChildRegistrationScreen.kt — Cadastro do perfil             ║
+ * ║  ChildRegistrationScreen.kt — tradução de                    ║
+ * ║  fullapp/screens/child-registration.jsx                      ║
  * ║                                                              ║
- * ║  Toggle: já nasceu / data prevista de parto.                 ║
- * ║  Sanitização via ChildProfileSanitizer.                      ║
+ * ║  Header editorial "vamos conhecer seu pequeno." + foto       ║
+ * ║  upload polaroide circular + segmented já nasceu/gestação +  ║
+ * ║  campos de nome e data com tag monospace.                    ║
  * ╚══════════════════════════════════════════════════════════════╝
  */
 package com.tsrapprun.child
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +23,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -27,14 +32,9 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,30 +45,40 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tsrapprun.platform.dateComponentsOf
 import com.tsrapprun.platform.epochMillisFromComponents
 import com.tsrapprun.platform.nowMillis
+import com.tsrapprun.ui.chrome.OliveDeep
+import com.tsrapprun.ui.chrome.PrimaryButton
+import com.tsrapprun.ui.chrome.ScreenHeader
+import com.tsrapprun.ui.chrome.Tag
+import com.tsrapprun.ui.chrome.italicSerifText
 import com.tsrapprun.ui.theme.CozyAmber
+import com.tsrapprun.ui.theme.CozyAmberDeep
 import com.tsrapprun.ui.theme.CozyCream
+import com.tsrapprun.ui.theme.CozyCreamDeep
 import com.tsrapprun.ui.theme.CozyOlive
-import com.tsrapprun.ui.theme.CozySage
 import com.tsrapprun.ui.theme.CozySageMist
-import com.tsrapprun.ui.theme.CozyTan
 
 @Composable
 fun ChildRegistrationScreen(
     initialProfile: ChildProfile? = null,
-    onSave: (firstName: String, birthdateMillis: Long, isPregnancy: Boolean) -> Unit,
-    onCancel: (() -> Unit)? = null
+    onSave: (firstName: String, birthdateMillis: Long, isPregnancy: Boolean, parentFirstName: String) -> Unit,
+    onCancel: (() -> Unit)? = null,
+    onPickAvatar: () -> Unit = {}
 ) {
     var firstName by remember { mutableStateOf(initialProfile?.firstName ?: "") }
+    var parentFirstName by remember { mutableStateOf(initialProfile?.parentFirstName ?: "") }
     var isPregnancy by remember { mutableStateOf(initialProfile?.isPregnancy ?: false) }
 
     val now = nowMillis()
@@ -81,252 +91,308 @@ fun ChildRegistrationScreen(
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(CozySageMist, CozyCream)
-                )
-            )
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(CozyCream)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 24.dp)
         ) {
-            if (onCancel != null) {
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            ScreenHeader(
+                chapter = "cadastro — passo 1 de 2",
+                title = italicSerifText(
+                    prefix = "vamos conhecer\n",
+                    italic = "seu pequeno",
+                    suffix = ".",
+                    italicColor = CozyAmberDeep,
+                    defaultColor = OliveDeep
+                ),
+                subtitle = "esses detalhes ficam só no seu aparelho. você pode editar depois.",
+                onBack = onCancel
+            )
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                // Foto upload polaroide circular
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    PhotoUploadPlaceholder(onClick = onPickAvatar)
+                }
+
+                // Segmented já nasceu / gestação
+                Column {
+                    Tag("momento", color = OliveDeep)
+                    Spacer(Modifier.height(8.dp))
                     Surface(
-                        modifier = Modifier.size(40.dp).clickable(onClick = onCancel),
-                        shape = CircleShape,
-                        color = CozyCream,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, CozyTan)
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = CozyCreamDeep
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("←", fontSize = 18.sp, color = CozyOlive)
+                        Row(
+                            modifier = Modifier.padding(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            SegmentedOption(
+                                modifier = Modifier.weight(1f),
+                                label = "já nasceu",
+                                symbol = "👶",
+                                selected = !isPregnancy,
+                                onClick = { isPregnancy = false }
+                            )
+                            SegmentedOption(
+                                modifier = Modifier.weight(1f),
+                                label = "gestação",
+                                symbol = "🤰",
+                                selected = isPregnancy,
+                                onClick = { isPregnancy = true }
+                            )
                         }
                     }
                 }
-                Spacer(Modifier.height(16.dp))
+
+                // Seu nome (papai/mamãe)
+                Column {
+                    Tag("seu nome (como podemos te chamar)", color = OliveDeep)
+                    Spacer(Modifier.height(8.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = CozyCreamDeep,
+                        border = BorderStroke(1.4.dp, CozyOlive.copy(alpha = 0.2f))
+                    ) {
+                        BasicTextField(
+                            value = parentFirstName,
+                            onValueChange = { if (it.length <= 50) parentFirstName = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                            singleLine = true,
+                            cursorBrush = SolidColor(CozyAmber),
+                            textStyle = TextStyle(
+                                fontFamily = FontFamily.Serif,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = OliveDeep,
+                                letterSpacing = (-0.3).sp
+                            ),
+                            decorationBox = { inner ->
+                                if (parentFirstName.isEmpty()) {
+                                    Text(
+                                        "ex: papai · mamãe · Aracelli",
+                                        fontFamily = FontFamily.Serif,
+                                        fontStyle = FontStyle.Italic,
+                                        fontSize = 16.sp,
+                                        color = CozyOlive.copy(alpha = 0.4f)
+                                    )
+                                }
+                                inner()
+                            },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                        )
+                    }
+                }
+
+                // Nome do filho
+                Column {
+                    Tag("nome ou apelido do bebê", color = OliveDeep)
+                    Spacer(Modifier.height(8.dp))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = CozyCreamDeep,
+                        border = BorderStroke(1.4.dp, CozyOlive.copy(alpha = 0.2f))
+                    ) {
+                        BasicTextField(
+                            value = firstName,
+                            onValueChange = { if (it.length <= 50) firstName = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                            singleLine = true,
+                            cursorBrush = SolidColor(CozyAmber),
+                            textStyle = TextStyle(
+                                fontFamily = FontFamily.Serif,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = OliveDeep,
+                                letterSpacing = (-0.3).sp
+                            ),
+                            decorationBox = { inner ->
+                                if (firstName.isEmpty()) {
+                                    Text(
+                                        if (isPregnancy) "ex: o nome escolhido" else "ex: Manu",
+                                        fontFamily = FontFamily.Serif,
+                                        fontStyle = FontStyle.Italic,
+                                        fontSize = 16.sp,
+                                        color = CozyOlive.copy(alpha = 0.4f)
+                                    )
+                                }
+                                inner()
+                            },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                        )
+                    }
+                }
+
+                // Data
+                Column {
+                    Tag(if (isPregnancy) "data prevista de parto" else "nasceu em", color = OliveDeep)
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        DateField(modifier = Modifier.weight(0.7f), value = day, label = "dia") {
+                            day = it.filter { c -> c.isDigit() }.take(2)
+                        }
+                        DateField(modifier = Modifier.weight(0.7f), value = month, label = "mês") {
+                            month = it.filter { c -> c.isDigit() }.take(2)
+                        }
+                        DateField(modifier = Modifier.weight(1f), value = year, label = "ano") {
+                            year = it.filter { c -> c.isDigit() }.take(4)
+                        }
+                    }
+                    val displayDate = formatPretty(day, month, year)
+                    if (displayDate != null) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "~ $displayDate ✿",
+                            fontFamily = FontFamily.Cursive,
+                            fontSize = 16.sp,
+                            color = CozyAmberDeep,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.End
+                        )
+                    }
+                }
+
+                if (errorMessage != null) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFFF5D9D7)
+                    ) {
+                        Text(
+                            errorMessage ?: "",
+                            fontSize = 13.sp,
+                            color = Color(0xFFB85450),
+                            modifier = Modifier.padding(14.dp)
+                        )
+                    }
+                }
             }
 
-            Spacer(Modifier.height(8.dp))
-
+            // Footer CTA
             Box(
-                modifier = Modifier.size(80.dp).clip(CircleShape).background(CozySage),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(if (isPregnancy) "🤰" else "👶", fontSize = 38.sp)
-            }
-            Spacer(Modifier.height(16.dp))
-            Text(
-                if (initialProfile == null) "vamos começar" else "editar perfil",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = CozyOlive
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                if (isPregnancy) "conta um pouco sobre essa expectativa"
-                else "conta um pouco sobre o seu pequeno",
-                fontSize = 14.sp,
-                color = CozyOlive.copy(alpha = 0.7f)
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            // ── Toggle: já nasceu / DPP ──
-            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(28.dp))
                     .background(CozyCream)
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    .border(BorderStroke(1.dp, CozyOlive.copy(alpha = 0.1f)), shape = RoundedCornerShape(0.dp))
+                    .padding(horizontal = 24.dp, vertical = 14.dp)
             ) {
-                ToggleOption(
-                    modifier = Modifier.weight(1f),
-                    label = "já nasceu",
-                    selected = !isPregnancy,
-                    onClick = { isPregnancy = false }
-                )
-                ToggleOption(
-                    modifier = Modifier.weight(1f),
-                    label = "está pra chegar",
-                    selected = isPregnancy,
-                    onClick = { isPregnancy = true }
-                )
-            }
-
-            Spacer(Modifier.height(20.dp))
-
-            Text(
-                "primeiro nome",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = CozyOlive,
-                modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-            )
-            OutlinedTextField(
-                value = firstName,
-                onValueChange = { input ->
-                    if (input.length <= 50) firstName = input
-                },
-                placeholder = { Text(if (isPregnancy) "ex: o nome escolhido" else "ex: Maria, João, Lis") },
-                singleLine = true,
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = CozySage,
-                    unfocusedBorderColor = CozyTan,
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
-                ),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-            )
-
-            Spacer(Modifier.height(20.dp))
-
-            Text(
-                if (isPregnancy) "data prevista de parto (DPP)" else "data de nascimento",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = CozyOlive,
-                modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                DateField(
-                    modifier = Modifier.weight(0.7f),
-                    label = "dia",
-                    value = day,
-                    onValueChange = { day = it.filter { c -> c.isDigit() }.take(2) }
-                )
-                DateField(
-                    modifier = Modifier.weight(0.7f),
-                    label = "mês",
-                    value = month,
-                    onValueChange = { month = it.filter { c -> c.isDigit() }.take(2) }
-                )
-                DateField(
-                    modifier = Modifier.weight(1f),
-                    label = "ano",
-                    value = year,
-                    onValueChange = { year = it.filter { c -> c.isDigit() }.take(4) }
-                )
-            }
-
-            if (errorMessage != null) {
-                Spacer(Modifier.height(16.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5D9D7)),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Text(
-                        errorMessage ?: "",
-                        fontSize = 13.sp,
-                        color = Color(0xFFB85450),
-                        modifier = Modifier.padding(14.dp)
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(28.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = CozyCream),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CozyTan)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        "🌿 ficam só no seu aparelho",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = CozyOlive
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "esses dados nunca saem do dispositivo. usamos para calcular semanas, dias, mesversários e enviar lembretes locais.",
-                        fontSize = 12.sp,
-                        color = CozyOlive.copy(alpha = 0.7f),
-                        lineHeight = 18.sp
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(20.dp))
-
-            Button(
-                onClick = {
-                    val parsedMillis = parseBirthdate(day, month, year)
-                    if (parsedMillis == null) {
-                        errorMessage = "data inválida — confira dia, mês e ano."
-                        return@Button
-                    }
-                    when (val result = ChildProfileSanitizer.sanitize(
-                        rawName = firstName,
-                        birthdateMillis = parsedMillis,
-                        isPregnancy = isPregnancy,
-                        nowMillis = nowMillis()
-                    )) {
-                        is ChildProfileSanitizer.Result.Invalid -> {
-                            errorMessage = result.message
+                PrimaryButton(
+                    text = "continuar",
+                    onClick = {
+                        val parsedMillis = parseBirthdate(day, month, year)
+                        if (parsedMillis == null) {
+                            errorMessage = "data inválida — confira dia, mês e ano."
+                            return@PrimaryButton
                         }
-                        is ChildProfileSanitizer.Result.Valid -> {
-                            errorMessage = null
-                            onSave(result.firstName, result.birthdateMillis, result.isPregnancy)
+                        when (val r = ChildProfileSanitizer.sanitize(
+                            rawName = firstName,
+                            birthdateMillis = parsedMillis,
+                            isPregnancy = isPregnancy,
+                            nowMillis = nowMillis()
+                        )) {
+                            is ChildProfileSanitizer.Result.Invalid -> errorMessage = r.message
+                            is ChildProfileSanitizer.Result.Valid -> {
+                                errorMessage = null
+                                onSave(r.firstName, r.birthdateMillis, r.isPregnancy, parentFirstName.trim())
+                            }
                         }
                     }
-                },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = CozyAmber,
-                    contentColor = Color.White
-                )
-            ) {
-                Text(
-                    if (initialProfile == null) "salvar e começar" else "salvar alterações",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
                 )
             }
-
-            Spacer(Modifier.height(20.dp))
         }
     }
 }
 
 @Composable
-private fun ToggleOption(
+private fun PhotoUploadPlaceholder(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.clickable(onClick = onClick)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(130.dp)
+                .graphicsLayer { rotationZ = -3f }
+                .clip(CircleShape)
+                .background(CozyCream)
+                .border(BorderStroke(1.dp, CozyOlive.copy(alpha = 0.4f)), CircleShape)
+                .padding(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(CozySageMist),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("📷", fontSize = 32.sp)
+            }
+        }
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = 4.dp, y = 4.dp)
+                .graphicsLayer { rotationZ = 8f },
+            shape = RoundedCornerShape(999.dp),
+            color = CozyAmber,
+            shadowElevation = 6.dp
+        ) {
+            Text(
+                "+ foto",
+                fontFamily = FontFamily.Serif,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = CozyCream,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SegmentedOption(
     modifier: Modifier,
     label: String,
+    symbol: String,
     selected: Boolean,
     onClick: () -> Unit
 ) {
     Surface(
         modifier = modifier
-            .height(48.dp)
+            .height(44.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(24.dp),
-        color = if (selected) CozySage else Color.Transparent
+        shape = RoundedCornerShape(11.dp),
+        color = if (selected) OliveDeep else Color.Transparent
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(symbol, fontSize = 14.sp)
+            Spacer(Modifier.width(6.dp))
             Text(
                 label,
+                fontFamily = FontFamily.Serif,
                 fontSize = 14.sp,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                color = if (selected) Color.White else CozyOlive.copy(alpha = 0.7f)
+                color = if (selected) CozyCream else CozyOlive.copy(alpha = 0.7f)
             )
         }
     }
@@ -335,34 +401,49 @@ private fun ToggleOption(
 @Composable
 private fun DateField(
     modifier: Modifier,
-    label: String,
     value: String,
+    label: String,
     onValueChange: (String) -> Unit
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        placeholder = {
-            Text(
-                label,
-                fontSize = 13.sp,
-                color = CozyOlive.copy(alpha = 0.4f),
-                textAlign = TextAlign.Center
-            )
-        },
-        singleLine = true,
+    Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = CozySage,
-            unfocusedBorderColor = CozyTan,
-            focusedContainerColor = Color.White,
-            unfocusedContainerColor = Color.White
-        ),
-        keyboardOptions = KeyboardOptions.Default.copy(
-            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+        shape = RoundedCornerShape(12.dp),
+        color = CozyCreamDeep,
+        border = BorderStroke(1.4.dp, CozyOlive.copy(alpha = 0.15f))
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 14.dp),
+            singleLine = true,
+            cursorBrush = SolidColor(CozyAmber),
+            textStyle = TextStyle(
+                fontFamily = FontFamily.Serif,
+                fontSize = 16.sp,
+                color = OliveDeep,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            ),
+            decorationBox = { inner ->
+                if (value.isEmpty()) {
+                    Text(
+                        label,
+                        fontFamily = FontFamily.Serif,
+                        fontStyle = FontStyle.Italic,
+                        fontSize = 14.sp,
+                        color = CozyOlive.copy(alpha = 0.4f),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+                inner()
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+            )
         )
-    )
+    }
 }
 
 private fun parseBirthdate(day: String, month: String, year: String): Long? {
@@ -373,4 +454,16 @@ private fun parseBirthdate(day: String, month: String, year: String): Long? {
     return runCatching {
         epochMillisFromComponents(year = y, monthIndex = m - 1, day = d, hour = 0, minute = 0)
     }.getOrNull()
+}
+
+private fun formatPretty(day: String, month: String, year: String): String? {
+    val d = day.toIntOrNull() ?: return null
+    val m = month.toIntOrNull() ?: return null
+    val y = year.toIntOrNull() ?: return null
+    val months = listOf(
+        "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+    )
+    if (m !in 1..12 || d !in 1..31 || y !in 1900..3000) return null
+    return "$d de ${months[m - 1]} de $y"
 }

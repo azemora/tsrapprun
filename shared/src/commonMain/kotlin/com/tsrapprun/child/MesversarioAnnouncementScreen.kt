@@ -1,57 +1,58 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
- * ║  MesversarioAnnouncementScreen.kt — Tela de comemoração      ║
+ * ║  MesversarioAnnouncementScreen.kt — tradução de              ║
+ * ║  fullapp/screens/mesversario.jsx                             ║
  * ║                                                              ║
- * ║  Mostrada quando a criança completa um novo mês de vida.     ║
- * ║  Animação simples (escala/fade). Texto celebrativo com       ║
- * ║  o nome e o número de meses.                                 ║
+ * ║  Fundo sage com número grande italic (display 200px),        ║
+ * ║  polaroide sobreposta, selo + caveat "sete!", mensagem do    ║
+ * ║  mês em card tracejado e mini stats.                         ║
  * ╚══════════════════════════════════════════════════════════════╝
  */
 package com.tsrapprun.child
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tsrapprun.ui.theme.CozyAmber
+import com.tsrapprun.platform.dateComponentsOf
+import com.tsrapprun.platform.nowMillis
+import com.tsrapprun.ui.chrome.Butter
+import com.tsrapprun.ui.chrome.OliveDeep
+import com.tsrapprun.ui.chrome.Peach
+import com.tsrapprun.ui.chrome.Polaroid
+import com.tsrapprun.ui.chrome.Stamp
+import com.tsrapprun.ui.chrome.Tag
 import com.tsrapprun.ui.theme.CozyCream
-import com.tsrapprun.ui.theme.CozyGold
-import com.tsrapprun.ui.theme.CozyOlive
-import com.tsrapprun.ui.theme.CozySageMist
+import com.tsrapprun.ui.theme.CozySage
 
 @Composable
 fun MesversarioAnnouncementScreen(
@@ -60,146 +61,225 @@ fun MesversarioAnnouncementScreen(
     onContinue: () -> Unit,
     onOpenMomentsList: () -> Unit
 ) {
-    var startAnim by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { startAnim = true }
-
-    val scale by animateFloatAsState(
-        targetValue = if (startAnim) 1f else 0.5f,
-        animationSpec = tween(durationMillis = 700, easing = FastOutSlowInEasing),
-        label = "mesversario_scale"
-    )
-    val alpha by animateFloatAsState(
-        targetValue = if (startAnim) 1f else 0f,
-        animationSpec = tween(durationMillis = 600),
-        label = "mesversario_alpha"
-    )
+    val today = run {
+        val c = dateComponentsOf(nowMillis())
+        val months = listOf("jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez")
+        "${c.day} ${months[c.monthIndex]} ${c.year}"
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        CozyGold,
-                        CozyAmber,
-                        CozyAmber
-                    )
-                )
-            )
+            .background(CozySage)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(horizontal = 32.dp, vertical = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
         ) {
-            // ── Confete emoji em círculo ──
-            Box(
-                modifier = Modifier
-                    .size(140.dp)
-                    .scale(scale)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.18f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("🎉", fontSize = 80.sp)
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            Text(
-                "mesversário!",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White.copy(alpha = 0.85f),
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            // ── Nome + idade ──
-            Text(
-                text = childFirstName,
-                fontSize = 56.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                textAlign = TextAlign.Center,
-                lineHeight = 60.sp
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = if (monthsCompleted == 1) "fez 1 mês" else "fez $monthsCompleted meses",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White.copy(alpha = 0.95f),
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            // ── Mensagem celebrativa ──
-            Box(
+            // Eyebrow
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White.copy(alpha = 0.18f))
-                    .padding(20.dp)
+                    .padding(horizontal = 24.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = celebrationMessage(monthsCompleted),
-                    fontSize = 14.sp,
-                    color = Color.White.copy(alpha = 0.95f),
-                    textAlign = TextAlign.Center,
-                    lineHeight = 22.sp
-                )
+                Box(
+                    modifier = Modifier.size(36.dp).clickable(onClick = onContinue),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("‹", fontSize = 24.sp, fontWeight = FontWeight.Light, color = CozyCream)
+                }
+                Tag("✿ mesversário", color = CozyCream)
+                Box(modifier = Modifier.size(36.dp))
             }
 
-            Spacer(Modifier.height(40.dp))
-
-            // ── Ações ──
-            Button(
-                onClick = onOpenMomentsList,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = CozyAmber
-                )
+            // HERO scrollável
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp)
             ) {
-                Text("ver os registros do mês", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                // HERO: número + polaroid lado a lado, sem sobreposição
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Coluna esquerda: número gigante + stamp
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "$monthsCompleted",
+                            fontFamily = FontFamily.Serif,
+                            fontStyle = FontStyle.Italic,
+                            fontSize = 140.sp,
+                            lineHeight = 130.sp,
+                            fontWeight = FontWeight.Light,
+                            color = CozyCream,
+                            letterSpacing = (-6).sp
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Stamp(
+                            label = monthsCompleted.toString().padStart(2, '0'),
+                            sub = "capítulo",
+                            color = Butter,
+                            rotation = -8f,
+                            size = 60.dp
+                        )
+                    }
+                    // Coluna direita: tag + caveat + polaroid
+                    Column(
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Tag("meses", color = CozyCream)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            wordOf(monthsCompleted) + "!",
+                            fontFamily = FontFamily.Cursive,
+                            fontSize = 26.sp,
+                            color = Butter,
+                            lineHeight = 26.sp
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Polaroid(
+                            tone = Peach,
+                            caption = today,
+                            width = 130.dp,
+                            photoHeight = 120.dp,
+                            rotation = 6f
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(28.dp))
+
+                // Mensagem do mês
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        color = CozyCream.copy(alpha = 0.12f),
+                        border = BorderStroke(1.4.dp, CozyCream.copy(alpha = 0.4f))
+                    ) {
+                        Text(
+                            messageFor(monthsCompleted, childFirstName),
+                            fontFamily = FontFamily.Serif,
+                            fontStyle = FontStyle.Italic,
+                            fontSize = 19.sp,
+                            lineHeight = 24.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = CozyCream,
+                            letterSpacing = (-0.4).sp,
+                            modifier = Modifier.padding(18.dp)
+                        )
+                    }
+                    // Tag flutuante "mensagem do mês"
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .offset(x = 18.dp, y = (-10).dp)
+                            .background(CozySage)
+                            .padding(horizontal = 8.dp)
+                    ) {
+                        Tag("mensagem do mês", color = Butter)
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Mini stats
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MiniStat(
+                        modifier = Modifier.weight(1f),
+                        tagText = "idade",
+                        value = "${monthsCompleted}m"
+                    )
+                    MiniStat(
+                        modifier = Modifier.weight(1f),
+                        tagText = "registrado",
+                        value = "#${monthsCompleted}"
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
             }
 
-            Spacer(Modifier.height(12.dp))
-
-            OutlinedButton(
-                onClick = onContinue,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(25.dp),
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.White.copy(alpha = 0.7f)),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = Color.White
-                )
-            ) {
-                Text("continuar", fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            // CTA
+            Box(modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onOpenMomentsList),
+                    shape = RoundedCornerShape(18.dp),
+                    color = CozyCream,
+                    shadowElevation = 8.dp
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "registrar este mesversário",
+                            fontFamily = FontFamily.Serif,
+                            fontSize = 15.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = OliveDeep,
+                            letterSpacing = (-0.2).sp
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text("→", fontSize = 16.sp, color = OliveDeep, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }
 }
 
-private fun celebrationMessage(monthsCompleted: Int): String = when (monthsCompleted) {
-    1 -> "primeiro mês completinho! tantas descobertas em tão pouco tempo."
-    2 -> "dois meses de aventura. cada sorriso é um marco."
+@Composable
+private fun MiniStat(modifier: Modifier, tagText: String, value: String) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        color = CozyCream.copy(alpha = 0.1f),
+        border = BorderStroke(1.4.dp, CozyCream.copy(alpha = 0.3f))
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+            Tag(tagText, color = CozyCream)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                value,
+                fontFamily = FontFamily.Serif,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Medium,
+                color = CozyCream,
+                letterSpacing = (-0.4).sp
+            )
+        }
+    }
+}
+
+private fun wordOf(n: Int): String = listOf(
+    "zero", "um", "dois", "três", "quatro", "cinco",
+    "seis", "sete", "oito", "nove", "dez", "onze", "doze"
+).getOrNull(n) ?: "$n"
+
+private fun messageFor(month: Int, name: String): String = when (month) {
+    1 -> "primeiro mês completinho.\ntantas descobertas em tão pouco tempo."
+    2 -> "dois meses de aventura.\ncada sorriso é um marco."
     3 -> "três meses já! que rápido o tempo voa."
     4 -> "quatro meses de muito amor e cuidado."
-    5 -> "cinco meses — quanta personalidade vindo à tona!"
-    6 -> "meio ano! marco grande, registro maior ainda."
-    7 -> "sete meses e tantas histórias para contar."
+    5 -> "cinco meses — quanta personalidade vindo à tona."
+    6 -> "meio ano!\nmarco grande, registro maior ainda."
+    7 -> "sete meses do mais doce dos sorrisos.\n$name descobriu o mundo dos sabores e nada vai ser igual."
     8 -> "oito meses — engatinhar, balbuciar, encantar."
-    9 -> "nove meses fora, cada dia uma novidade."
-    10 -> "dez meses já! caminhando pra um aninho."
-    11 -> "onze meses — o último mesversário antes do grande dia."
-    12 -> "1 ANINHO! que jornada incrível, registrada com carinho."
+    9 -> "nove meses fora,\ncada dia uma novidade."
+    10 -> "dez meses já!\ncaminhando pra um aninho."
+    11 -> "onze meses — o último mesversário\nantes do grande dia."
+    12 -> "1 ANINHO.\nque jornada incrível, registrada com carinho."
     else -> "mais um mês celebrado e guardado com carinho."
 }

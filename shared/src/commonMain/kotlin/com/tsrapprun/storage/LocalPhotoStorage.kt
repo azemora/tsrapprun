@@ -17,7 +17,9 @@ package com.tsrapprun.storage
 import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.PhotoData
 import com.tsrapprun.child.ChildProfile
+import com.tsrapprun.moments.MomentDraft
 import com.tsrapprun.moments.MomentEntry
+import com.tsrapprun.reminders.Reminder
 
 /**
  * Interface multiplataforma para armazenamento local criptografado.
@@ -100,4 +102,29 @@ expect class LocalPhotoStorage {
 
     /** Retorna o perfil cadastrado, ou null se ainda não há. */
     suspend fun getChildProfile(): ChildProfile?
+
+    // ── Rascunho de registro (single-slot) ──
+
+    /** Salva ou substitui o rascunho atual. */
+    suspend fun saveMomentDraft(draft: MomentDraft)
+
+    /** Retorna o rascunho salvo, ou null se vazio. */
+    suspend fun getMomentDraft(): MomentDraft?
+
+    /** Remove o rascunho (chamado após `saveMoment`). */
+    suspend fun clearMomentDraft()
+
+    // ── Lembretes ──
+
+    /** Salva um lembrete. */
+    suspend fun saveReminder(reminder: Reminder)
+
+    /** Lista todos os lembretes (mais recentes primeiro). */
+    suspend fun listReminders(): List<Reminder>
+
+    /** Atualiza um lembrete existente (ex: marcar como completo). */
+    suspend fun updateReminder(reminder: Reminder)
+
+    /** Deleta um lembrete pelo ID. */
+    suspend fun deleteReminder(reminderId: String): Boolean
 }

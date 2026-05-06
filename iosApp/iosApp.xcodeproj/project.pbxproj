@@ -7,21 +7,25 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		029FDF79A3A19B37BFFD3587 /* PhotoPickerHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCAE97333EDE908F75A0F672 /* PhotoPickerHandler.swift */; };
 		1C81D6F669B7BB6D2FFCCEB3 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = B6E18E1D8AEE3BF1FDA1E5E9 /* GoogleSignIn */; };
 		1CBD93487FFCBD60A26C7E8B /* EventCameraHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95AD1B3E6AFFE2D3C2EF0A5A /* EventCameraHandler.swift */; };
 		307C2654CD5972A25FB7FD87 /* iOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 668CECA83ACC03A83C85A623 /* iOSApp.swift */; };
 		548D762E8FA764A73E4CD697 /* AuthHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4B8F30FEC48E783F781B53B /* AuthHandler.swift */; };
 		56B0305B5D3847FC6B326502 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8509E5A49E4A5CAAEB3ADB /* ContentView.swift */; };
 		5BEF6C99CF76648E35252642 /* MomentNotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08336E594444C7945FBC4C9C /* MomentNotificationScheduler.swift */; };
+		875325AA5E6692CFE851E20E /* AudioRecorderHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C9DB3AC6D574D910255BA7 /* AudioRecorderHandler.swift */; };
 		C87B4FA04BDA1DA04158D48E /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = A55143988C4C8F291BE72E9A /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		08336E594444C7945FBC4C9C /* MomentNotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MomentNotificationScheduler.swift; sourceTree = "<group>"; };
 		668CECA83ACC03A83C85A623 /* iOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSApp.swift; sourceTree = "<group>"; };
-		86038AE1032E284E79B32AD6 /* iosApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		86038AE1032E284E79B32AD6 /* iosApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		95AD1B3E6AFFE2D3C2EF0A5A /* EventCameraHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventCameraHandler.swift; sourceTree = "<group>"; };
 		A55143988C4C8F291BE72E9A /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		B4C9DB3AC6D574D910255BA7 /* AudioRecorderHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorderHandler.swift; sourceTree = "<group>"; };
+		BCAE97333EDE908F75A0F672 /* PhotoPickerHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPickerHandler.swift; sourceTree = "<group>"; };
 		C117AD187833E2513BD2F553 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		CE8509E5A49E4A5CAAEB3ADB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F4B8F30FEC48E783F781B53B /* AuthHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthHandler.swift; sourceTree = "<group>"; };
@@ -42,6 +46,7 @@
 		1DB4B685CAEE8BEFEBBAEF94 /* iosApp */ = {
 			isa = PBXGroup;
 			children = (
+				B4C9DB3AC6D574D910255BA7 /* AudioRecorderHandler.swift */,
 				F4B8F30FEC48E783F781B53B /* AuthHandler.swift */,
 				CE8509E5A49E4A5CAAEB3ADB /* ContentView.swift */,
 				95AD1B3E6AFFE2D3C2EF0A5A /* EventCameraHandler.swift */,
@@ -49,6 +54,7 @@
 				C117AD187833E2513BD2F553 /* Info.plist */,
 				668CECA83ACC03A83C85A623 /* iOSApp.swift */,
 				08336E594444C7945FBC4C9C /* MomentNotificationScheduler.swift */,
+				BCAE97333EDE908F75A0F672 /* PhotoPickerHandler.swift */,
 			);
 			path = iosApp;
 			sourceTree = "<group>";
@@ -168,10 +174,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				875325AA5E6692CFE851E20E /* AudioRecorderHandler.swift in Sources */,
 				548D762E8FA764A73E4CD697 /* AuthHandler.swift in Sources */,
 				56B0305B5D3847FC6B326502 /* ContentView.swift in Sources */,
 				1CBD93487FFCBD60A26C7E8B /* EventCameraHandler.swift in Sources */,
 				5BEF6C99CF76648E35252642 /* MomentNotificationScheduler.swift in Sources */,
+				029FDF79A3A19B37BFFD3587 /* PhotoPickerHandler.swift in Sources */,
 				307C2654CD5972A25FB7FD87 /* iOSApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -321,7 +329,7 @@
 					"-framework",
 					shared,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.tsrapprun.iosApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aracellibianchin.tsrapprun;
 				PRODUCT_NAME = iosApp;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -347,7 +355,7 @@
 					"-framework",
 					shared,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.tsrapprun.iosApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aracellibianchin.tsrapprun;
 				PRODUCT_NAME = iosApp;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";

@@ -36,11 +36,15 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>O tsrapprun precisa da câmera para registrar fotos dos seus eventos e momentos.</string>
+	<string>O tsrapprun precisa da câmera para registrar fotos dos seus momentos.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>O tsrapprun usa o microfone para gravar áudio do registro rápido.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>O tsrapprun pode salvar fotos editadas na sua biblioteca.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>O tsrapprun pode importar fotos existentes para os seus eventos.</string>
+	<string>O tsrapprun pode importar fotos existentes para os seus registros.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>O tsrapprun transcreve sua voz para preencher o título e a nota do registro automaticamente.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

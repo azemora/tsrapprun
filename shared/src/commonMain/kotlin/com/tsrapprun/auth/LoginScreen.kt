@@ -1,12 +1,17 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
- * ║  LoginScreen.kt — Tela de login (paleta cozy)                ║
+ * ║  LoginScreen.kt — tradução de fullapp/screens/login.jsx      ║
+ * ║                                                              ║
+ * ║  Fundo sage com mini scrapbook (2 polaroides + folha + selo) ║
+ * ║  + título editorial "memórias acolhedoras, seguras & suas"   ║
+ * ║  + botões "continuar com Google" / "continuar como visitante"║
  * ╚══════════════════════════════════════════════════════════════╝
  */
 package com.tsrapprun.auth
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,13 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,219 +37,277 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tsrapprun.ui.theme.CozyAmber
+import com.tsrapprun.ui.chrome.Butter
+import com.tsrapprun.ui.chrome.OliveDeep
+import com.tsrapprun.ui.chrome.Peach
+import com.tsrapprun.ui.chrome.Polaroid
+import com.tsrapprun.ui.chrome.Stamp
+import com.tsrapprun.ui.chrome.Tag
 import com.tsrapprun.ui.theme.CozyCream
-import com.tsrapprun.ui.theme.CozyGold
-import com.tsrapprun.ui.theme.CozyOlive
 import com.tsrapprun.ui.theme.CozySage
-import com.tsrapprun.ui.theme.CozySageMist
 
 @Composable
 fun LoginScreen(
     authState: AuthState,
-    onSignInClick: () -> Unit
+    onSignInClick: () -> Unit,
+    onContinueAsGuest: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(CozySageMist, CozyCream)
-                )
-            )
+            .background(CozySage)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(horizontal = 28.dp, vertical = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(horizontal = 28.dp, vertical = 32.dp)
         ) {
-            // ── Símbolo / mascote ──
+            // ── Eyebrow ──
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier
+                        .width(22.dp)
+                        .height(1.dp)
+                        .background(CozyCream.copy(alpha = 0.5f))
+                )
+                Spacer(Modifier.width(10.dp))
+                Tag("cresci·com — entrar", color = CozyCream)
+                Spacer(Modifier.width(10.dp))
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .height(1.dp)
+                        .background(CozyCream.copy(alpha = 0.18f))
+                )
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            // ── Mini scrapbook ──
             Box(
                 modifier = Modifier
-                    .size(96.dp)
-                    .clip(CircleShape)
-                    .background(CozySage),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .height(180.dp)
             ) {
-                Text("🌿", fontSize = 48.sp) // 🌿
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            Text(
-                text = "TSR App",
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Bold,
-                color = CozyOlive
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = "memórias acolhedoras,\nseguras e suas",
-                fontSize = 15.sp,
-                color = CozyOlive.copy(alpha = 0.75f),
-                textAlign = TextAlign.Center,
-                lineHeight = 22.sp
-            )
-
-            Spacer(Modifier.height(48.dp))
-
-            // ── Conteúdo dinâmico ──
-            when (authState) {
-                is AuthState.Loading -> LoadingContent()
-                is AuthState.Unauthenticated -> GoogleSignInButton(onClick = onSignInClick)
-                is AuthState.Error -> ErrorContent(
-                    message = authState.message,
-                    onRetryClick = onSignInClick
+                Polaroid(
+                    modifier = Modifier.align(Alignment.TopStart),
+                    tone = Peach,
+                    caption = "dia 1",
+                    width = 120.dp,
+                    photoHeight = 110.dp,
+                    rotation = -8f
                 )
-                is AuthState.Authenticated -> { /* navegação cuida */ }
+                Polaroid(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(top = 18.dp),
+                    tone = Butter,
+                    caption = "primeira vez",
+                    width = 108.dp,
+                    photoHeight = 96.dp,
+                    rotation = 7f
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 86.dp, bottom = 8.dp)
+                        .graphicsLayer { rotationZ = -18f }
+                ) {
+                    Text("✿", fontSize = 36.sp, color = CozyCream)
+                }
+                Stamp(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 20.dp, bottom = 0.dp),
+                    label = "01",
+                    sub = "capítulo",
+                    color = Butter,
+                    rotation = 6f,
+                    size = 56.dp
+                )
             }
 
-            Spacer(Modifier.height(48.dp))
+            Spacer(Modifier.height(28.dp))
 
-            DataProtectionNotice()
+            // ── Título ──
+            Text(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(color = CozyCream, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Normal)) {
+                        append("memórias\n")
+                    }
+                    withStyle(SpanStyle(color = Butter, fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic, fontWeight = FontWeight.Light)) {
+                        append("acolhedoras")
+                    }
+                    withStyle(SpanStyle(color = CozyCream, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Normal)) {
+                        append(",\nseguras & suas.")
+                    }
+                },
+                fontSize = 36.sp,
+                lineHeight = 35.sp,
+                letterSpacing = (-1.1).sp
+            )
+
+            Spacer(Modifier.height(14.dp))
+
+            Text(
+                "para começar, escolha como entrar.",
+                fontSize = 13.5.sp,
+                color = CozyCream.copy(alpha = 0.78f),
+                lineHeight = 21.sp
+            )
+
+            Spacer(Modifier.weight(1f))
+
+            // ── CTA stack ──
+            when (authState) {
+                is AuthState.Loading -> LoadingState()
+                is AuthState.Error -> {
+                    ErrorState(authState.message)
+                    Spacer(Modifier.height(12.dp))
+                    GoogleButton(onSignInClick)
+                    Spacer(Modifier.height(10.dp))
+                    GuestButton(onContinueAsGuest)
+                }
+                is AuthState.Unauthenticated -> {
+                    GoogleButton(onSignInClick)
+                    Spacer(Modifier.height(10.dp))
+                    GuestButton(onContinueAsGuest)
+                }
+                is AuthState.Authenticated -> {
+                    // navegação cuida
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                "🔒 ficam só no seu aparelho",
+                fontFamily = FontFamily.Monospace,
+                fontSize = 11.sp,
+                letterSpacing = 0.4.sp,
+                color = CozyCream.copy(alpha = 0.6f),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
 
 @Composable
-private fun LoadingContent() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(40.dp),
-            color = CozySage,
-            strokeWidth = 3.dp
-        )
-        Text(
-            text = "preparando suas memórias…",
-            fontSize = 14.sp,
-            color = CozyOlive.copy(alpha = 0.7f)
-        )
-    }
-}
-
-@Composable
-private fun GoogleSignInButton(onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
+private fun GoogleButton(onClick: () -> Unit) {
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(60.dp),
-        shape = RoundedCornerShape(30.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = CozyAmber,
-            contentColor = Color.White
-        ),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 4.dp,
-            pressedElevation = 1.dp
-        )
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        color = CozyCream,
+        shadowElevation = 8.dp
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(22.dp)
                     .clip(CircleShape)
                     .background(Color.White),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "G",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF4285F4)
-                )
+                Text("G", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4285F4))
             }
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(10.dp))
             Text(
-                text = "Entrar com Google",
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold
+                "continuar com Google",
+                fontFamily = FontFamily.Serif,
+                fontSize = 15.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = OliveDeep,
+                letterSpacing = (-0.1).sp
             )
         }
     }
 }
 
 @Composable
-private fun ErrorContent(
-    message: String,
-    onRetryClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+private fun GuestButton(onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        color = Color.Transparent,
+        border = BorderStroke(1.4.dp, CozyCream)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "continuar como convidado",
+                fontFamily = FontFamily.Serif,
+                fontSize = 14.5.sp,
+                fontWeight = FontWeight.Medium,
+                color = CozyCream
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoadingState() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(28.dp),
+            color = CozyCream,
+            strokeWidth = 2.5.dp
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            "preparando suas memórias…",
+            fontFamily = FontFamily.Serif,
+            fontStyle = FontStyle.Italic,
+            fontSize = 14.sp,
+            color = CozyCream.copy(alpha = 0.85f)
+        )
+    }
+}
+
+@Composable
+private fun ErrorState(message: String) {
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = CozyCream.copy(alpha = 0.18f),
+        border = BorderStroke(1.dp, CozyCream.copy(alpha = 0.4f)),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-        ) {
-            Text(
-                text = message,
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(20.dp)
-            )
-        }
-
-        OutlinedButton(
-            onClick = onRetryClick,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = RoundedCornerShape(26.dp),
-            border = BorderStroke(1.5.dp, CozyAmber),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = CozyAmber
-            )
-        ) {
-            Text("Tentar novamente", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-        }
-    }
-}
-
-@Composable
-private fun DataProtectionNotice() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = CozyCream),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, CozyGold.copy(alpha = 0.3f))
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "🌿 seus dados ficam aqui com você",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = CozyOlive
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = "fotos criptografadas localmente. envio para a nuvem é opcional. usamos só seu nome e email para identificação.",
-                fontSize = 12.sp,
-                color = CozyOlive.copy(alpha = 0.65f),
-                textAlign = TextAlign.Center,
-                lineHeight = 18.sp
-            )
-        }
+        Text(
+            message,
+            fontSize = 13.sp,
+            color = CozyCream,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(14.dp)
+        )
     }
 }

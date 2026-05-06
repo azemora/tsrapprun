@@ -52,6 +52,18 @@ sealed class NavigationScreen {
     /** Tela de registro de momento (diário ou semanal). */
     data class MomentRegistration(val type: String) : NavigationScreen()
 
+    /** Detalhe full-screen de um registro de texto (DAILY/WEEKLY). */
+    data class MomentDetail(val momentId: String) : NavigationScreen()
+
+    /** Captura de áudio (passo do registro rápido), com fotos já capturadas. */
+    data object AudioCapture : NavigationScreen()
+
+    /** Captura de áudio para um lembrete. */
+    data object ReminderCapture : NavigationScreen()
+
+    /** Lista de lembretes salvos; opcionalmente destaca um id (ex: vindo do calendário). */
+    data class RemindersList(val highlightId: String? = null) : NavigationScreen()
+
     /** Visualizador fullscreen com swipe entre fotos. */
     data class PhotoViewer(
         val initialIndex: Int,
@@ -67,6 +79,6 @@ sealed class NavigationScreen {
     /** Menu de historinhas infantis. */
     data object Stories : NavigationScreen()
 
-    /** Calendário com feriados marcados. */
-    data object Calendar : NavigationScreen()
+    /** Calendário com feriados marcados; opcionalmente destaca uma data. */
+    data class Calendar(val highlightMillis: Long? = null) : NavigationScreen()
 }

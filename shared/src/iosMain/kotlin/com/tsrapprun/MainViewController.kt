@@ -1,6 +1,9 @@
 package com.tsrapprun
 
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import com.tsrapprun.camera.toByteArray
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -12,6 +15,7 @@ import com.tsrapprun.camera.PhotoData
 import com.tsrapprun.child.ChildProfile
 import com.tsrapprun.child.ChildProfileSanitizer
 import com.tsrapprun.child.MilestoneSynthesizer
+import com.tsrapprun.moments.MomentDraft
 import com.tsrapprun.moments.MomentEntry
 import com.tsrapprun.notifications.IosNotificationBridge
 import com.tsrapprun.platform.newUuid
@@ -29,6 +33,10 @@ fun MainViewController(
     var moments by remember { mutableStateOf<List<MomentEntry>>(emptyList()) }
     var childProfile by remember { mutableStateOf<ChildProfile?>(null) }
     var pendingMesversario by remember { mutableStateOf(0) }
+    var momentDraft by remember { mutableStateOf<MomentDraft?>(null) }
+    var reminders by remember { mutableStateOf<List<com.tsrapprun.reminders.Reminder>>(emptyList()) }
+    val pendingNotificationAction by IosNotificationBridge.pendingActionFlow.collectAsState()
+    val bgScope = androidx.compose.runtime.rememberCoroutineScope()
 
     suspend fun refreshData() {
         // Carrega perfil primeiro
@@ -62,6 +70,8 @@ fun MainViewController(
         photoCount = allPhotos.size
         events = storage.listEvents()
         moments = storage.listMoments()
+        momentDraft = storage.getMomentDraft()
+        reminders = storage.listReminders()
         val totalBytes = storage.getTotalStorageUsed()
         storageUsedMB = formatMb(totalBytes)
     }
@@ -73,8 +83,30 @@ fun MainViewController(
         callbacks = AppCallbacks(
             onSignInClick = { authBridge.onSignInClick() },
             onSignOutClick = { authBridge.onSignOutClick() },
-            onImportPhotos = { },
-            onImportPhotosToEvent = { _ -> },
+            onImportPhotos = {
+                com.tsrapprun.photos.IosPhotoPickerBridge.onPick(null) { dataList, _ ->
+                    bgScope.launch {
+                        dataList.forEach { d ->
+                            storage.savePhoto(imageBytes = d.toByteArray())
+                        }
+                        refreshData()
+                    }
+                }
+            },
+            onImportPhotosToEvent = { eventId ->
+                com.tsrapprun.photos.IosPhotoPickerBridge.onPick(eventId) { dataList, _ ->
+                    bgScope.launch {
+                        dataList.forEach { d ->
+                            storage.savePhoto(imageBytes = d.toByteArray(), eventId = eventId)
+                        }
+                        events.find { it.id == eventId }?.let { e ->
+                            val newCount = storage.listPhotosByEvent(eventId).size
+                            storage.updateEvent(e.copy(photoCount = newCount))
+                        }
+                        refreshData()
+                    }
+                }
+            },
             onSaveEventPhoto = { bytes ->
                 storage.savePhoto(imageBytes = bytes).id
             },
@@ -94,7 +126,23 @@ fun MainViewController(
             onDeleteMoment = { momentId -> storage.deleteMoment(momentId) },
             onRefreshData = { refreshData() },
             onTestNotification = { IosNotificationBridge.onTestNotification() },
-            onSaveChildProfile = { firstName, birthdateMillis, isPregnancy ->
+            onTestMesversario = {
+                val name = childProfile?.firstName ?: ""
+                IosNotificationBridge.onTestMesversario(name)
+            },
+            onTestAniversario = {
+                val name = childProfile?.firstName ?: ""
+                IosNotificationBridge.onTestAniversario(name)
+            },
+            onSaveMomentDraft = { draft ->
+                storage.saveMomentDraft(draft)
+                momentDraft = draft
+            },
+            onClearMomentDraft = {
+                storage.clearMomentDraft()
+                momentDraft = null
+            },
+            onSaveChildProfile = { firstName, birthdateMillis, isPregnancy, parentFirstName ->
                 // Defesa em profundidade: re-sanitiza no caller também.
                 when (val result = ChildProfileSanitizer.sanitize(
                     rawName = firstName,
@@ -112,12 +160,39 @@ fun MainViewController(
                             createdAtMillis = existing?.createdAtMillis ?: nowMillis(),
                             lastSeenMonthCount = existing?.lastSeenMonthCount ?: 0,
                             lastSeenWeekCount = existing?.lastSeenWeekCount ?: 0,
-                            lastSeenDayCount = existing?.lastSeenDayCount ?: 0
+                            lastSeenDayCount = existing?.lastSeenDayCount ?: 0,
+                            parentFirstName = parentFirstName.ifBlank { null }
                         )
                         storage.saveChildProfile(toSave)
                     }
                     is ChildProfileSanitizer.Result.Invalid -> {
                         // Caller deve tratar; aqui apenas não persistimos.
+                    }
+                }
+            },
+            onSaveReminder = { reminder ->
+                storage.saveReminder(reminder)
+                reminders = storage.listReminders()
+            },
+            onUpdateReminder = { reminder ->
+                storage.updateReminder(reminder)
+                reminders = storage.listReminders()
+            },
+            onDeleteReminder = { id ->
+                storage.deleteReminder(id)
+                reminders = storage.listReminders()
+            },
+            onClearNotificationAction = {
+                IosNotificationBridge.setPendingAction(null)
+            },
+            onPickChildAvatar = {
+                com.tsrapprun.photos.IosPhotoPickerBridge.onPick(null) { dataList, _ ->
+                    bgScope.launch {
+                        val firstBytes = dataList.firstOrNull()?.toByteArray() ?: return@launch
+                        val saved = storage.savePhoto(imageBytes = firstBytes)
+                        val current = storage.getChildProfile() ?: return@launch
+                        storage.saveChildProfile(current.copy(avatarPhotoId = saved.id))
+                        refreshData()
                     }
                 }
             }
@@ -129,7 +204,10 @@ fun MainViewController(
             allPhotos = allPhotos,
             moments = moments,
             childProfile = childProfile,
-            pendingMesversarioMonth = pendingMesversario
+            pendingMesversarioMonth = pendingMesversario,
+            momentDraft = momentDraft,
+            reminders = reminders,
+            pendingNotificationAction = pendingNotificationAction
         )
     )
 }

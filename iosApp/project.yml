@@ -33,9 +33,11 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true
-        NSCameraUsageDescription: "O tsrapprun precisa da câmera para registrar fotos dos seus eventos e momentos."
+        NSCameraUsageDescription: "O tsrapprun precisa da câmera para registrar fotos dos seus momentos."
         NSPhotoLibraryAddUsageDescription: "O tsrapprun pode salvar fotos editadas na sua biblioteca."
-        NSPhotoLibraryUsageDescription: "O tsrapprun pode importar fotos existentes para os seus eventos."
+        NSPhotoLibraryUsageDescription: "O tsrapprun pode importar fotos existentes para os seus registros."
+        NSMicrophoneUsageDescription: "O tsrapprun usa o microfone para gravar áudio do registro rápido."
+        NSSpeechRecognitionUsageDescription: "O tsrapprun transcreve sua voz para preencher o título e a nota do registro automaticamente."
         UILaunchScreen:
           UIColorName: ""
         UIApplicationSceneManifest:

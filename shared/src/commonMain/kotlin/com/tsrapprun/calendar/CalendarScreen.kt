@@ -1,17 +1,17 @@
 /**
  * ╔══════════════════════════════════════════════════════════════╗
- * ║  CalendarScreen.kt — Calendário com feriados marcados        ║
+ * ║  CalendarScreen.kt — tradução de fullapp/screens/calendar.jsx║
  * ║                                                              ║
- * ║  Layout inspirado em calendários ilustrados:                 ║
- * ║   • Top: ilustração colorida com gradiente suave             ║
- * ║   • Meio: nome do mês em destaque                            ║
- * ║   • Grid: dias da semana + dias do mês                       ║
- * ║   • Domingos e feriados em destaque (vermelho-tijolo)        ║
+ * ║  Header editorial "abril 2025" com chevrons.                 ║
+ * ║  Grid de dias coloridos por tipo (mesversário/feriado/evento)║
+ * ║  + legenda + lista "próximos".                               ║
  * ╚══════════════════════════════════════════════════════════════╝
  */
 package com.tsrapprun.calendar
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,11 +29,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,70 +41,116 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tsrapprun.platform.dateComponentsOf
-import com.tsrapprun.platform.epochMillisFromComponents
 import com.tsrapprun.platform.nowMillis
+import com.tsrapprun.ui.chrome.Butter
+import com.tsrapprun.ui.chrome.OliveDeep
+import com.tsrapprun.ui.chrome.Pastels
+import com.tsrapprun.ui.chrome.Peach
+import com.tsrapprun.ui.chrome.ScreenHeader
+import com.tsrapprun.ui.chrome.Tag
+import com.tsrapprun.ui.chrome.italicSerifText
 import com.tsrapprun.ui.theme.CozyAmber
-import com.tsrapprun.ui.theme.CozyBrick
+import com.tsrapprun.ui.theme.CozyAmberDeep
 import com.tsrapprun.ui.theme.CozyCream
 import com.tsrapprun.ui.theme.CozyCreamDeep
-import com.tsrapprun.ui.theme.CozyGold
-import com.tsrapprun.ui.theme.CozyInk
 import com.tsrapprun.ui.theme.CozyOlive
 import com.tsrapprun.ui.theme.CozySage
-import com.tsrapprun.ui.theme.CozyTan
+import com.tsrapprun.ui.theme.CozySageMist
 
-// ── Feriados nacionais brasileiros (fixos) ──
-// monthIndex (0-based) → list of (day, holidayName)
-private val BR_HOLIDAYS: Map<Int, List<Pair<Int, String>>> = mapOf(
-    0 to listOf(1 to "Confraternização Universal"),
-    3 to listOf(21 to "Tiradentes"),
-    4 to listOf(1 to "Dia do Trabalho"),
-    8 to listOf(7 to "Independência"),
-    9 to listOf(12 to "Nossa Sra. Aparecida"),
-    10 to listOf(2 to "Finados", 15 to "Proclamação da República", 20 to "Consciência Negra"),
-    11 to listOf(25 to "Natal")
+private enum class DayKind { MESVERSARIO, FERIADO, EVENTO, LEMBRETE }
+private data class CalendarMark(
+    val type: DayKind,
+    val label: String,
+    val reminderId: String? = null,
+    val eventId: String? = null,
+    val mesversarioMonth: Int? = null
 )
 
 private val MONTH_NAMES = listOf(
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+)
+private val MONTH_SHORT = listOf(
+    "jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"
 )
 
-private val MONTH_GRADIENTS: List<List<Color>> = listOf(
-    listOf(Color(0xFFE0EFCB), Color(0xFFC9DBE8)), // jan
-    listOf(Color(0xFFF2D6D2), Color(0xFFE6CFE8)), // fev — carnaval
-    listOf(Color(0xFFD4E0C9), Color(0xFFE0EFCB)), // mar
-    listOf(Color(0xFFFCE4A7), Color(0xFFF2D6D2)), // abr
-    listOf(Color(0xFFE0EFCB), Color(0xFFC9DBE8)), // mai
-    listOf(Color(0xFFFCE4A7), Color(0xFFE0EFCB)), // jun
-    listOf(Color(0xFFE2DAE9), Color(0xFFC9DBE8)), // jul
-    listOf(Color(0xFFF2D6D2), Color(0xFFFCE4A7)), // ago
-    listOf(Color(0xFFE0EFCB), Color(0xFFFCE4A7)), // set
-    listOf(Color(0xFFE6CFE8), Color(0xFFF2D6D2)), // out
-    listOf(Color(0xFFE2DAE9), Color(0xFFE6CFE8)), // nov
-    listOf(Color(0xFFFCE4A7), Color(0xFFE6CFE8))  // dez
+private val BR_HOLIDAYS: Map<Int, List<Pair<Int, String>>> = mapOf(
+    0 to listOf(1 to "Confraternização"),
+    3 to listOf(21 to "Tiradentes"),
+    4 to listOf(1 to "Dia do Trabalho"),
+    8 to listOf(7 to "Independência"),
+    9 to listOf(12 to "N. Sra. Aparecida"),
+    10 to listOf(2 to "Finados", 15 to "Proclamação", 20 to "Consciência Negra"),
+    11 to listOf(25 to "Natal")
 )
-
-private val MONTH_EMOJIS = listOf("🎆", "🎭", "🌷", "🐰", "🌼", "🌽", "☀️", "🌻", "🍂", "🎃", "🌺", "🎄")
 
 @Composable
-fun CalendarScreen(onBack: () -> Unit) {
-    val now = nowMillis()
-    val today = remember(now) { dateComponentsOf(now) }
-    var displayedMonth by remember { mutableStateOf(today.monthIndex) }
-    var displayedYear by remember { mutableStateOf(today.year) }
+fun CalendarScreen(
+    onBack: () -> Unit,
+    highlightMillis: Long? = null,
+    reminders: List<com.tsrapprun.reminders.Reminder> = emptyList(),
+    events: List<com.tsrapprun.camera.EventData> = emptyList(),
+    moments: List<com.tsrapprun.moments.MomentEntry> = emptyList(),
+    onOpenReminder: (reminderId: String) -> Unit = {},
+    onOpenEvent: (com.tsrapprun.camera.EventData) -> Unit = {},
+    onOpenMesversario: (monthsCompleted: Int) -> Unit = {}
+) {
+    val today = remember { dateComponentsOf(nowMillis()) }
+    val highlight = remember(highlightMillis) {
+        highlightMillis?.let { dateComponentsOf(it) }
+    }
+    // Se houver destaque, abre o calendário no mês/ano dele.
+    var displayedMonth by remember { mutableStateOf(highlight?.monthIndex ?: today.monthIndex) }
+    var displayedYear by remember { mutableStateOf(highlight?.year ?: today.year) }
+
+    val marks = remember(displayedMonth, displayedYear, reminders, events, moments) {
+        buildMap<Int, CalendarMark> {
+            // Camada 1: feriados (base)
+            BR_HOLIDAYS[displayedMonth].orEmpty().forEach { (day, name) ->
+                put(day, CalendarMark(DayKind.FERIADO, name))
+            }
+            // Camada 2: eventos (registros com fotos) — sobrescreve feriado
+            events.forEach { event ->
+                val c = dateComponentsOf(event.createdAt)
+                if (c.year == displayedYear && c.monthIndex == displayedMonth) {
+                    put(c.day, CalendarMark(
+                        DayKind.EVENTO, event.name.take(40), eventId = event.id
+                    ))
+                }
+            }
+            // Camada 3: mesversários (auto-gerados) — sobrescreve evento
+            moments.forEach { m ->
+                if (m.type != com.tsrapprun.moments.MomentType.MESVERSARIO) return@forEach
+                val c = dateComponentsOf(m.createdAt)
+                if (c.year == displayedYear && c.monthIndex == displayedMonth) {
+                    put(c.day, CalendarMark(
+                        DayKind.MESVERSARIO,
+                        "${m.milestoneNumber} ${if (m.milestoneNumber == 1) "mês" else "meses"}",
+                        mesversarioMonth = m.milestoneNumber
+                    ))
+                }
+            }
+            // Camada 4: lembretes (alta prioridade — mais recente do usuário)
+            reminders.forEach { r ->
+                val due = r.dueAt ?: return@forEach
+                val c = dateComponentsOf(due)
+                if (c.year == displayedYear && c.monthIndex == displayedMonth) {
+                    put(c.day, CalendarMark(DayKind.LEMBRETE, r.text.take(40), reminderId = r.id))
+                }
+            }
+        }
+    }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(CozyCream)
+        modifier = Modifier.fillMaxSize().background(CozyCream)
     ) {
         Column(
             modifier = Modifier
@@ -114,199 +158,126 @@ fun CalendarScreen(onBack: () -> Unit) {
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Header com ilustração
-            CalendarHeader(
-                monthIndex = displayedMonth,
-                year = displayedYear,
+            ScreenHeader(
+                chapter = "vol. 01 — calendário",
+                title = italicSerifText(
+                    prefix = "${MONTH_NAMES[displayedMonth]} ",
+                    italic = "$displayedYear",
+                    italicColor = CozyAmberDeep,
+                    defaultColor = OliveDeep
+                ),
                 onBack = onBack,
-                onPrev = {
-                    if (displayedMonth == 0) {
-                        displayedMonth = 11
-                        displayedYear -= 1
-                    } else displayedMonth -= 1
-                },
-                onNext = {
-                    if (displayedMonth == 11) {
-                        displayedMonth = 0
-                        displayedYear += 1
-                    } else displayedMonth += 1
-                }
-            )
-
-            // Card branco com calendário
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 16.dp, bottom = 24.dp),
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, CozyTan.copy(alpha = 0.4f))
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        MONTH_NAMES[displayedMonth].uppercase(),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = CozyInk,
-                        letterSpacing = 4.sp,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        "$displayedYear",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = CozyOlive.copy(alpha = 0.6f),
-                        letterSpacing = 2.sp,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(Modifier.height(20.dp))
-
-                    DayOfWeekHeader()
-
-                    Spacer(Modifier.height(8.dp))
-
-                    MonthGrid(
-                        year = displayedYear,
-                        monthIndex = displayedMonth,
-                        today = today
-                    )
-
-                    val holidays = BR_HOLIDAYS[displayedMonth].orEmpty()
-                    if (holidays.isNotEmpty()) {
-                        Spacer(Modifier.height(20.dp))
-                        Text(
-                            "Feriados",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = CozyOlive,
-                            letterSpacing = 2.sp
-                        )
-                        Spacer(Modifier.height(10.dp))
-                        holidays.forEach { (day, name) ->
-                            HolidayRow(day = day, name = name)
-                            Spacer(Modifier.height(6.dp))
+                rightContent = {
+                    Row {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clickable {
+                                    if (displayedMonth == 0) {
+                                        displayedMonth = 11; displayedYear -= 1
+                                    } else displayedMonth -= 1
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("‹", fontSize = 22.sp, fontWeight = FontWeight.Light, color = OliveDeep)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clickable {
+                                    if (displayedMonth == 11) {
+                                        displayedMonth = 0; displayedYear += 1
+                                    } else displayedMonth += 1
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("›", fontSize = 22.sp, fontWeight = FontWeight.Light, color = OliveDeep)
                         }
                     }
                 }
-            }
-        }
-    }
-}
+            )
 
-// ═══════════════════════════════════════════════════
-// HEADER
-// ═══════════════════════════════════════════════════
-
-@Composable
-private fun CalendarHeader(
-    monthIndex: Int,
-    year: Int,
-    onBack: () -> Unit,
-    onPrev: () -> Unit,
-    onNext: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(bottomStart = 36.dp, bottomEnd = 36.dp))
-            .background(Brush.verticalGradient(MONTH_GRADIENTS[monthIndex]))
-            .padding(20.dp)
-    ) {
-        Column {
-            // Top bar
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    modifier = Modifier.size(38.dp).clickable(onClick = onBack),
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.7f)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("←", fontSize = 18.sp, color = CozyInk)
+            // Grid
+            Column(modifier = Modifier.padding(horizontal = 22.dp)) {
+                WeekdayHeader()
+                Spacer(Modifier.height(6.dp))
+                MonthGrid(
+                    year = displayedYear,
+                    monthIndex = displayedMonth,
+                    today = today,
+                    marks = marks,
+                    highlight = highlight,
+                    onMarkClick = { mark ->
+                        when {
+                            mark.reminderId != null -> onOpenReminder(mark.reminderId)
+                            mark.mesversarioMonth != null -> onOpenMesversario(mark.mesversarioMonth)
+                            mark.eventId != null -> {
+                                events.find { it.id == mark.eventId }?.let { onOpenEvent(it) }
+                            }
+                            else -> { /* feriado: sem ação */ }
+                        }
                     }
-                }
-                Spacer(Modifier.weight(1f))
-                Text(
-                    "Calendário",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = CozyInk,
-                    letterSpacing = 0.3.sp
                 )
-                Spacer(Modifier.weight(1f))
-                Spacer(Modifier.size(38.dp))
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Legend
+            Row(
+                modifier = Modifier.padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                LegendItem(color = Butter, label = "mesversário")
+                LegendItem(color = Peach, label = "feriado")
+                LegendItem(color = CozySage, label = "lembrete")
             }
 
             Spacer(Modifier.height(20.dp))
 
-            // Ilustração placeholder
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(MONTH_EMOJIS[monthIndex], fontSize = 84.sp)
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            // Navegação mês
+            // Próximos
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                NavArrow(symbol = "‹", onClick = onPrev)
-                Spacer(Modifier.weight(1f))
-                Spacer(Modifier.weight(1f))
-                NavArrow(symbol = "›", onClick = onNext)
+                Box(Modifier.width(14.dp).height(1.dp).background(CozyOlive.copy(alpha = 0.4f)))
+                Spacer(Modifier.width(10.dp))
+                Tag("próximos", color = OliveDeep)
+                Spacer(Modifier.width(10.dp))
+                Box(Modifier.weight(1f).height(1.dp).background(CozyOlive.copy(alpha = 0.18f)))
             }
+
+            Spacer(Modifier.height(10.dp))
+
+            BR_HOLIDAYS[displayedMonth].orEmpty().forEach { (day, name) ->
+                UpcomingRow(
+                    dateLabel = "${MONTH_SHORT[displayedMonth]} ${day.toString().padStart(2, '0')}",
+                    title = name,
+                    kind = "feriado",
+                    accent = Peach
+                )
+                Spacer(Modifier.height(10.dp))
+            }
+
+            Spacer(Modifier.height(80.dp))
         }
     }
 }
 
 @Composable
-private fun NavArrow(symbol: String, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.size(36.dp).clickable(onClick = onClick),
-        shape = CircleShape,
-        color = Color.White.copy(alpha = 0.7f)
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                symbol,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Light,
-                color = CozyInk
-            )
-        }
-    }
-}
-
-// ═══════════════════════════════════════════════════
-// GRID
-// ═══════════════════════════════════════════════════
-
-@Composable
-private fun DayOfWeekHeader() {
-    val days = listOf("D", "S", "T", "Q", "Q", "S", "S")
-    Row(modifier = Modifier.fillMaxWidth()) {
-        days.forEachIndexed { i, d ->
+private fun WeekdayHeader() {
+    val days = listOf("d", "s", "t", "q", "q", "s", "s")
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        days.forEach { d ->
             Box(
                 modifier = Modifier.weight(1f),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    d,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (i == 0) CozyBrick else CozyOlive.copy(alpha = 0.7f),
-                    letterSpacing = 0.5.sp
+                    d.uppercase(),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 9.5.sp,
+                    color = CozyOlive.copy(alpha = 0.6f),
+                    letterSpacing = 1.4.sp
                 )
             }
         }
@@ -317,34 +288,36 @@ private fun DayOfWeekHeader() {
 private fun MonthGrid(
     year: Int,
     monthIndex: Int,
-    today: com.tsrapprun.platform.DateTimeComponents
+    today: com.tsrapprun.platform.DateTimeComponents,
+    marks: Map<Int, CalendarMark>,
+    highlight: com.tsrapprun.platform.DateTimeComponents?,
+    onMarkClick: (CalendarMark) -> Unit
 ) {
-    val firstDayWeekday = remember(year, monthIndex) {
-        // Calcula dia da semana do dia 1 do mês usando epoch
-        // 0=Sun, 1=Mon, ... 6=Sat (igual ao iOS NSCalendar / Java Calendar - 1)
-        val firstMs = epochMillisFromComponents(year, monthIndex, 1, 0, 0)
-        // Reuse: precisamos do dia da semana — derivamos via dateComponentsOf
-        // Como DateTimeComponents não expõe weekday, derivamos via Zeller's congruence
-        zellerWeekday(year, monthIndex + 1, 1)
-    }
+    val firstWeekday = remember(year, monthIndex) { zellerWeekday(year, monthIndex + 1, 1) }
     val daysInMonth = remember(year, monthIndex) { daysInMonth(year, monthIndex) }
-    val holidays = BR_HOLIDAYS[monthIndex].orEmpty().map { it.first }.toSet()
-
     val cells = mutableListOf<Int?>()
-    repeat(firstDayWeekday) { cells.add(null) }
+    repeat(firstWeekday) { cells.add(null) }
     for (d in 1..daysInMonth) cells.add(d)
     while (cells.size % 7 != 0) cells.add(null)
 
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         cells.chunked(7).forEach { row ->
-            Row(modifier = Modifier.fillMaxWidth()) {
-                row.forEachIndexed { i, day ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                row.forEach { day ->
+                    val mark = day?.let { marks[it] }
+                    val isClickable = mark != null && mark.type != DayKind.FERIADO
                     DayCell(
                         modifier = Modifier.weight(1f),
                         day = day,
-                        isSunday = i == 0,
-                        isHoliday = day != null && day in holidays,
-                        isToday = day == today.day && monthIndex == today.monthIndex && year == today.year
+                        isToday = day == today.day && monthIndex == today.monthIndex && year == today.year,
+                        isHighlighted = day != null && highlight != null &&
+                                day == highlight.day &&
+                                monthIndex == highlight.monthIndex &&
+                                year == highlight.year,
+                        mark = mark,
+                        onClick = if (isClickable) {
+                            { onMarkClick(mark!!) }
+                        } else null
                     )
                 }
             }
@@ -356,102 +329,152 @@ private fun MonthGrid(
 private fun DayCell(
     modifier: Modifier,
     day: Int?,
-    isSunday: Boolean,
-    isHoliday: Boolean,
-    isToday: Boolean
+    isToday: Boolean,
+    isHighlighted: Boolean = false,
+    mark: CalendarMark?,
+    onClick: (() -> Unit)? = null
 ) {
+    val bg = when {
+        isHighlighted -> Butter
+        isToday -> OliveDeep
+        mark?.type == DayKind.MESVERSARIO -> Butter
+        mark?.type == DayKind.FERIADO -> Peach
+        mark?.type == DayKind.EVENTO -> CozySageMist
+        mark?.type == DayKind.LEMBRETE -> CozySage
+        else -> Color.Transparent
+    }
     Box(
-        modifier = modifier.height(36.dp),
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(10.dp))
+            .background(bg)
+            .let { m -> if (onClick != null) m.clickable(onClick = onClick) else m }
+            .let { m ->
+                when {
+                    isHighlighted -> m.border(
+                        BorderStroke(2.dp, CozyAmberDeep),
+                        RoundedCornerShape(10.dp)
+                    )
+                    mark != null && !isToday -> m.border(
+                        BorderStroke(1.2.dp, CozyOlive.copy(alpha = 0.4f)),
+                        RoundedCornerShape(10.dp)
+                    )
+                    else -> m
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
-        if (day == null) return@Box
-        val color = when {
-            isHoliday -> CozyBrick
-            isSunday -> CozyBrick
-            else -> CozyInk
-        }
-        if (isToday) {
-            Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .clip(CircleShape)
-                    .background(CozyAmber),
-                contentAlignment = Alignment.Center
-            ) {
+        if (day != null) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     "$day",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    fontFamily = FontFamily.Serif,
+                    fontSize = if (isHighlighted) 17.sp else 15.sp,
+                    fontWeight = if (isToday || isHighlighted) FontWeight.Bold else FontWeight.Medium,
+                    color = when {
+                        isHighlighted -> CozyAmberDeep
+                        isToday -> CozyCream
+                        else -> OliveDeep
+                    }
                 )
+                if (isHighlighted) {
+                    Spacer(Modifier.height(1.dp))
+                    Text(
+                        "✦",
+                        fontSize = 9.sp,
+                        color = CozyAmberDeep
+                    )
+                } else if (mark != null && !isToday) {
+                    Spacer(Modifier.height(1.dp))
+                    Box(
+                        Modifier.size(4.dp).clip(RoundedCornerShape(2.dp)).background(CozyAmberDeep)
+                    )
+                }
             }
-        } else {
-            Text(
-                "$day",
-                fontSize = 13.sp,
-                fontWeight = if (isHoliday) FontWeight.Bold else FontWeight.Medium,
-                color = color
-            )
         }
     }
 }
 
 @Composable
-private fun HolidayRow(day: Int, name: String) {
+private fun LegendItem(color: Color, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
-            modifier = Modifier
-                .size(28.dp)
-                .clip(CircleShape)
-                .background(CozyBrick.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "$day",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = CozyBrick
-            )
-        }
-        Spacer(Modifier.width(10.dp))
+            Modifier
+                .size(width = 10.dp, height = 10.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(color)
+                .border(BorderStroke(1.dp, OliveDeep.copy(alpha = 0.2f)), RoundedCornerShape(3.dp))
+        )
+        Spacer(Modifier.width(6.dp))
         Text(
-            name,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            color = CozyInk
+            label,
+            fontSize = 11.sp,
+            color = CozyOlive.copy(alpha = 0.8f)
         )
     }
 }
 
-// ═══════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════
+@Composable
+private fun UpcomingRow(dateLabel: String, title: String, kind: String, accent: Color) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = CozyCreamDeep,
+        border = BorderStroke(1.4.dp, OliveDeep.copy(alpha = 0.1f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(accent.copy(alpha = 0.4f))
+                    .border(BorderStroke(1.4.dp, accent), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    dateLabel,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = CozyAmberDeep,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 11.sp
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Tag(kind, color = CozyAmberDeep)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    title,
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = OliveDeep,
+                    letterSpacing = (-0.3).sp
+                )
+            }
+            Text("›", fontSize = 18.sp, color = CozyOlive, fontWeight = FontWeight.Light)
+        }
+    }
+}
 
 private fun daysInMonth(year: Int, monthIndex: Int): Int = when (monthIndex) {
     0, 2, 4, 6, 7, 9, 11 -> 31
     3, 5, 8, 10 -> 30
-    1 -> if (isLeap(year)) 29 else 28
+    1 -> if ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0) 29 else 28
     else -> 30
 }
 
-private fun isLeap(year: Int): Boolean =
-    (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
-
-/**
- * Zeller's congruence — devolve dia da semana com 0=Sunday.
- * Mais portátil que NSCalendar/Calendar e funciona em commonMain.
- */
 private fun zellerWeekday(year: Int, month1Based: Int, day: Int): Int {
     var m = month1Based
     var y = year
-    if (m < 3) {
-        m += 12
-        y -= 1
-    }
+    if (m < 3) { m += 12; y -= 1 }
     val K = y % 100
     val J = y / 100
     val h = (day + (13 * (m + 1)) / 5 + K + K / 4 + J / 4 + 5 * J) % 7
-    // h: 0=Saturday, 1=Sunday, 2=Monday...
-    // Convertemos para 0=Sunday, 1=Monday, ..., 6=Saturday
     return ((h + 6) % 7)
 }

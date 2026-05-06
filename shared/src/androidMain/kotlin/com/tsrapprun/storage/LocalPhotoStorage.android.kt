@@ -22,6 +22,7 @@ import com.tsrapprun.camera.EventData
 import com.tsrapprun.camera.PhotoData
 import com.tsrapprun.child.ChildProfile
 import com.tsrapprun.gallery.GalleryMediaSaver
+import com.tsrapprun.moments.MomentDraft
 import com.tsrapprun.moments.MomentEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -41,6 +42,8 @@ actual class LocalPhotoStorage(private val context: Context) {
         private const val EVENT_INDEX_FILE = "event_index.json.enc"
         private const val MOMENT_INDEX_FILE = "moment_index.json.enc"
         private const val CHILD_PROFILE_FILE = "child_profile.json.enc"
+        private const val MOMENT_DRAFT_FILE = "moment_draft.json.enc"
+        private const val REMINDER_INDEX_FILE = "reminder_index.json.enc"
     }
 
     private val masterKey: MasterKey = MasterKey.Builder(context)
@@ -54,7 +57,9 @@ actual class LocalPhotoStorage(private val context: Context) {
     private val photoIndexMutex = Mutex()
     private val eventIndexMutex = Mutex()
     private val momentIndexMutex = Mutex()
+    private val reminderIndexMutex = Mutex()
     private val childProfileMutex = Mutex()
+    private val momentDraftMutex = Mutex()
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -390,6 +395,50 @@ actual class LocalPhotoStorage(private val context: Context) {
         }
     }
 
+    // ── RASCUNHO ──
+
+    actual suspend fun saveMomentDraft(draft: MomentDraft) {
+        withContext(Dispatchers.IO) {
+            momentDraftMutex.withLock {
+                val jsonString = json.encodeToString(draft)
+                val file = File(context.filesDir, MOMENT_DRAFT_FILE)
+                file.delete()
+                val encryptedFile = EncryptedFile.Builder(
+                    context, file, masterKey,
+                    EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
+                ).build()
+                encryptedFile.openFileOutput().use { it.write(jsonString.toByteArray()); it.flush() }
+            }
+        }
+    }
+
+    actual suspend fun getMomentDraft(): MomentDraft? {
+        return withContext(Dispatchers.IO) {
+            val file = File(context.filesDir, MOMENT_DRAFT_FILE)
+            if (!file.exists()) return@withContext null
+            try {
+                val encryptedFile = EncryptedFile.Builder(
+                    context, file, masterKey,
+                    EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
+                ).build()
+                val jsonString = encryptedFile.openFileInput().use { it.readBytes().decodeToString() }
+                json.decodeFromString<MomentDraft>(jsonString)
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro ao ler rascunho", e)
+                null
+            }
+        }
+    }
+
+    actual suspend fun clearMomentDraft() {
+        withContext(Dispatchers.IO) {
+            momentDraftMutex.withLock {
+                File(context.filesDir, MOMENT_DRAFT_FILE).delete()
+                Unit
+            }
+        }
+    }
+
     // ══════════════════════════════════════════════
     // ÍNDICE DE MOMENTOS (criptografado)
     // ══════════════════════════════════════════════
@@ -419,6 +468,64 @@ actual class LocalPhotoStorage(private val context: Context) {
             val indexFile = File(context.filesDir, MOMENT_INDEX_FILE)
             indexFile.delete()
 
+            val encryptedFile = EncryptedFile.Builder(
+                context, indexFile, masterKey,
+                EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
+            ).build()
+            encryptedFile.openFileOutput().use { out ->
+                out.write(jsonString.toByteArray())
+                out.flush()
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════
+    // LEMBRETES
+    // ══════════════════════════════════════════════
+
+    actual suspend fun saveReminder(reminder: com.tsrapprun.reminders.Reminder) {
+        updateReminderIndex { it + reminder }
+    }
+
+    actual suspend fun listReminders(): List<com.tsrapprun.reminders.Reminder> =
+        withContext(Dispatchers.IO) { readReminderIndex().sortedByDescending { it.createdAt } }
+
+    actual suspend fun updateReminder(reminder: com.tsrapprun.reminders.Reminder) {
+        updateReminderIndex { list -> list.map { if (it.id == reminder.id) reminder else it } }
+    }
+
+    actual suspend fun deleteReminder(reminderId: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            updateReminderIndex { list -> list.filter { it.id != reminderId } }
+            true
+        } catch (t: Throwable) { false }
+    }
+
+    private fun readReminderIndex(): List<com.tsrapprun.reminders.Reminder> {
+        val indexFile = File(context.filesDir, REMINDER_INDEX_FILE)
+        if (!indexFile.exists()) return emptyList()
+        return try {
+            val encryptedFile = EncryptedFile.Builder(
+                context, indexFile, masterKey,
+                EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
+            ).build()
+            val jsonString = encryptedFile.openFileInput().use { it.readBytes().decodeToString() }
+            json.decodeFromString<List<com.tsrapprun.reminders.Reminder>>(jsonString)
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao ler índice de lembretes", e)
+            emptyList()
+        }
+    }
+
+    private suspend fun updateReminderIndex(
+        transform: (List<com.tsrapprun.reminders.Reminder>) -> List<com.tsrapprun.reminders.Reminder>
+    ) {
+        reminderIndexMutex.withLock {
+            val current = readReminderIndex()
+            val updated = transform(current)
+            val jsonString = json.encodeToString(updated)
+            val indexFile = File(context.filesDir, REMINDER_INDEX_FILE)
+            indexFile.delete()
             val encryptedFile = EncryptedFile.Builder(
                 context, indexFile, masterKey,
                 EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
